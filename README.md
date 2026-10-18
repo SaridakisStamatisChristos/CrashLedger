@@ -14,9 +14,9 @@ Requires a working Rust toolchain; no Node.js, Docker, external service or cloud
 
 ~~~bash
 cargo fmt --all -- --check
-cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace
-cargo run -p crashledger-cli -- validate scenarios/lost-ack.yaml
+cargo clippy --locked --workspace --all-targets -- -D warnings
+cargo test --locked --workspace
+cargo run --locked -p crashledger-cli -- validate scenarios/lost-ack.yaml
 ~~~
 
 Expected success: VALID plus scenario ID and bound configuration, exit 0. An invalid or unreadable scenario exits 4 with an error. This CLI does not contact the target during validation.
