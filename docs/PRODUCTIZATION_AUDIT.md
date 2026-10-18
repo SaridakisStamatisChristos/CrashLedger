@@ -1,5 +1,7 @@
 # Open-source productization review — October 2026
 
+**Historical engineering record.** This review describes the state and planned acceptance checks during the October 2026 licensing/documentation work. It is not a current-head CI attestation, a new release announcement, or a substitute for examining the present [workflow runs](https://github.com/SaridakisStamatisChristos/CrashLedger/actions/workflows/ci.yml).
+
 The productization change selects Apache License 2.0 for **first-party source**, aligns all Cargo packages, and updates documentation and CI to prevent false "no license" claims. It does not create a public release, claim third-party legal compliance, or expand the v0.1 failure model.
 
 ## Implemented contract and evidence gates
