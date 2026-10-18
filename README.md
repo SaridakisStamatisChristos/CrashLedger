@@ -2,11 +2,11 @@
 
 CrashLedger is a **local-first correctness experiment runner** for controlled failures and independently checked postconditions, implemented in Rust.
 
-## Current scope — PR-05
+## Current scope — PR-06
 
 PR-01 provides the workspace, strict scenario validator and pure verdict evaluator. PR-02 adds a **standalone, independently tested SQLite-backed HTTP order fixture** with intentionally broken and transactionally fixed idempotency modes. PR-03 adds a bounded loopback HTTP/1.1 one-shot suppression proxy and an identical-byte retry driver. PR-04 adds the experiment engine and a direct read-only SQLite observer. The full lost-response demonstration is now available from the CLI; PR-05 persists versioned, manifest-verified evidence and adds an offline report command that reconstructs the verdict.
 
-Requirements and the incremental roadmap are in [docs/ROADMAP.md](docs/ROADMAP.md). The scenario source contract is in [docs/SCENARIO_V1.md](docs/SCENARIO_V1.md).
+PR-06 introduces separately started local scenarios and 100-pair isolated failure stress validation. Requirements and the incremental roadmap are in [docs/ROADMAP.md](docs/ROADMAP.md). The scenario source contract is in [docs/SCENARIO_V1.md](docs/SCENARIO_V1.md).
 
 ## Build and validate
 
@@ -73,6 +73,19 @@ python3 scripts/verify_bundle.py ./artifacts/r-EXAMPLE
 Replace r-EXAMPLE with the actual run directory printed by demo. The Rust reporter rejects corrupted/missing/invalid artifacts, checks the SHA-256 manifest, and recomputes the core verdict from the recorded facts. A trustworthy FAIL report exits **0** because reporting succeeded; broken demo itself still exits **2**. A corrupt bundle or report infrastructure failure exits **4**.
 
 **Evidence scope:** SHA-256 detects accidental corruption, not a malicious author who can regenerate a whole bundle. The redacted snapshot is not replayable. The independent Python verifier uses only the standard library.
+
+## Standalone local authored scenarios — PR-06
+
+Start the standalone order fixture in one terminal, using an absolute SQLite database path. Its readiness message prints the actual loopback URL. Edit a copy of scenarios/lost-ack.yaml, changing target.base_url to that exact URL. Then execute the user-authored file against the separately managed target, with an **explicitly authorized absolute oracle SQLite path**:
+
+~~~bash
+cargo run --locked -p crashledger-cli -- run scenarios/my-local.yaml \
+  --oracle-db /absolute/path/to/orders.sqlite --out artifacts
+~~~
+
+The CLI does not launch or stop the external target and never infers permission to read an SQLite file from the YAML. It writes a new isolated evidence directory under --out and prints its location. A missing, inaccessible observer or missed fault results in INCONCLUSIVE when workload facts are otherwise available; an unreachable target is an infrastructure ERROR. Re-run the reporter with the printed evidence path.
+
+Black-box acceptance: `python3 scripts/test_standalone.py` runs against separately started fixtures and exercises a nonmatching fault, HTTP 500, missing observer, and unreachable upstream. The workspace stress suite performs **100 fresh broken plus 100 fresh fixed** demos and verifies each complete evidence bundle.
 
 ## Licensing
 

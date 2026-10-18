@@ -49,7 +49,7 @@ def verify(directory, mode=None, verdict=None, count=None):
             "schema mismatch")
     require(run["snapshot_redacted"] is True, "nonredacted snapshot")
     require(run["run_id"] == directory.name, "run ID mismatch")
-    require(run["fixture_mode"] in ("broken", "fixed"), "unknown mode")
+    require(run["fixture_mode"] in ("broken", "fixed", "external"), "unknown mode")
     require(obs["read_only"] is True and obs["kind"] == "sqlite_scalar", "oracle provenance invalid")
     require(all(e["seq"] == i and e["run_id"] == run["run_id"]
                 for i, e in enumerate(events, 1)), "event ordering or run ID mismatch")
@@ -114,7 +114,7 @@ def verify(directory, mode=None, verdict=None, count=None):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("bundle", type=Path)
-    ap.add_argument("--expect-mode", choices=("broken", "fixed"))
+    ap.add_argument("--expect-mode", choices=("broken", "fixed", "external"))
     ap.add_argument("--expect-verdict", choices=("PASS", "FAIL", "INCONCLUSIVE", "ERROR"))
     ap.add_argument("--expect-count", type=int)
     args = ap.parse_args()
