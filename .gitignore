@@ -6,3 +6,20 @@
 *.sqlite-shm
 *.sqlite-wal
 .DS_Store
+
+# Python verification caches and local virtual environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+
+# CI transcripts and local dependency audit
+*.log
+/dependency-audit.json
+
+# Local/private runtime data and release archives
+*.sqlite-journal
+*.tar.gz
+.env
+.env.*
+!.env.example
