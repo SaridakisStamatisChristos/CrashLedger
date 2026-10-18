@@ -3,7 +3,8 @@
 ## Unreleased
 
 - Refresh product-facing scenario/roadmap documentation, fix stale acceptance references, clarify prerequisites, and prevent internal agent/handoff terminology from returning to current user docs.
-- Earlier open-source productization work:
+## Earlier unreleased productization work (historical)
+
 - Apply canonical Apache License 2.0 to first-party source and all Cargo packages.
 - Add NOTICE, third-party notice-review documentation, community/security/support policies and standard issue/PR templates.
 - Reorganize README for quick start, explicit exit codes, evidence usage and scoped guarantees.
