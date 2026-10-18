@@ -51,6 +51,7 @@ test -d "$broken_dir" && test -d "$fixed_dir"
 "$cli" report "$fixed_dir" --format json >"$root/fixed.report.json"
 python3 scripts/verify_bundle.py "$broken_dir" --expect-mode broken --expect-verdict FAIL --expect-count 2
 python3 scripts/verify_bundle.py "$fixed_dir" --expect-mode fixed --expect-verdict PASS --expect-count 1
+python3 scripts/test_license_policy.py
 python3 scripts/audit_dependencies.py "$root/dependency-audit.json"
 # Packaging test: both binaries are present and can be unpacked. No upload/publish.
 archive="$root/crashledger-v0.1.0-rc-linux-x86_64.tar.gz"
