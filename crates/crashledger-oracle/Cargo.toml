@@ -1,0 +1,13 @@
+[package]
+name = "crashledger-oracle"
+version.workspace = true
+edition.workspace = true
+description = "Read-only, independent SQLite scalar observer"
+
+[dependencies]
+rusqlite = { version = "0.37", features = ["bundled"] }
+serde_json.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile = "3"

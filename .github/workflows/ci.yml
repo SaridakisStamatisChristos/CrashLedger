@@ -21,3 +21,21 @@ jobs:
         run: cargo test --locked --workspace
       - name: CLI smoke test
         run: cargo run --locked -p crashledger-cli -- validate scenarios/lost-ack.yaml
+      - name: End-to-end broken negative control (exit 2)
+        run: |
+          set +e
+          cargo run --locked -p crashledger-cli -- demo --mode broken > broken-demo.log 2>&1
+          code=$?
+          set -e
+          cat broken-demo.log
+          test "$code" -eq 2
+          grep -q 'Verdict: FAIL' broken-demo.log
+          grep -q 'orders_for_key = 2; expected = 1' broken-demo.log
+          grep -q 'Attempts: 2' broken-demo.log
+      - name: End-to-end fixed positive control (exit 0)
+        run: |
+          cargo run --locked -p crashledger-cli -- demo --mode fixed > fixed-demo.log 2>&1
+          cat fixed-demo.log
+          grep -q 'Verdict: PASS' fixed-demo.log
+          grep -q 'orders_for_key = 1; expected = 1' fixed-demo.log
+          grep -q 'Attempts: 2' fixed-demo.log

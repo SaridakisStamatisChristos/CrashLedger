@@ -13,4 +13,4 @@ Source of truth: CrashLedger_Architecture_MVP_PR_Roadmap_v1.md supplied as the i
 | 07 | Cross-platform CI, docs, threat model and ADRs | CI and documented commands exercise contract; no unverified claims |
 | 08 | v0.1 release candidate | Clean checkout build, broken/fixed demos and evidence readback |
 
-**PR-01 and PR-02 are merged. PR-03 introduces the isolated HTTP transport seam; PR-04 remains the first complete runtime experiment and independently judged verdict.** No universal exactly-once guarantee is claimed. License selection remains owner-controlled.
+**PR-01, PR-02 and PR-03 are merged. PR-04 integrates them into the first independently evaluated full experiment; PR-05–08 add versioned evidence, robustness and release gates.** No universal exactly-once guarantee is claimed. License selection remains owner-controlled.
