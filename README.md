@@ -2,9 +2,9 @@
 
 CrashLedger is a **local-first correctness experiment runner** for controlled failures and independently checked postconditions, implemented in Rust.
 
-## Current scope — PR-03
+## Current scope — PR-04
 
-PR-01 provides the workspace, strict scenario validator and pure verdict evaluator. PR-02 adds a **standalone, independently tested SQLite-backed HTTP order fixture** with intentionally broken and transactionally fixed idempotency modes. PR-03 adds a bounded loopback HTTP/1.1 one-shot suppression proxy and an identical-byte retry driver. The full experiment engine, independent runtime oracle and demo verdict are deferred to PR-04.
+PR-01 provides the workspace, strict scenario validator and pure verdict evaluator. PR-02 adds a **standalone, independently tested SQLite-backed HTTP order fixture** with intentionally broken and transactionally fixed idempotency modes. PR-03 adds a bounded loopback HTTP/1.1 one-shot suppression proxy and an identical-byte retry driver. PR-04 adds the experiment engine and a direct read-only SQLite observer. The full lost-response demonstration is now available from the CLI; PR-05 will introduce the complete versioned evidence bundles and report command.
 
 Requirements and the incremental roadmap are in [docs/ROADMAP.md](docs/ROADMAP.md). The scenario source contract is in [docs/SCENARIO_V1.md](docs/SCENARIO_V1.md).
 
@@ -40,7 +40,21 @@ The `crashledger-http` library exposes `Proxy::start`, `retry_post` and typed tr
 
 It is deliberately HTTP/1.1 only: Content-Length framing is required, transfer encoding/chunked streams and protocol upgrades are rejected, and no remote upstream is accepted. All worker tasks are joined or cancelled on `shutdown`. The library records events but **does not decide PASS/FAIL**. Run `cargo test --locked --workspace` to exercise the proxy against a controlled TCP upstream.
 
-## End-to-end objective (not implemented yet)
+## End-to-end demo (PR-04)
+
+The CLI owns an isolated SQLite fixture subprocess and a loopback fault proxy. It runs the **same** canonical lost-ack scenario against the intentionally broken and transactionally idempotent order modes. The client observes a transport failure after the first upstream success, then retries identical request bytes. Once proxy tasks have quiesced, a **separate read-only SQLite connection** executes a bound scalar query. The independent observed row count decides the verdict only after fault and attempt preconditions are met.
+
+~~~bash
+cargo run --locked -p crashledger-cli -- demo --mode broken
+# Expected FAIL, two orders, exit 2 (the deliberate negative control)
+cargo run --locked -p crashledger-cli -- demo --mode fixed
+# Expected PASS, one order, exit 0
+~~~
+
+To use a different output root, pass `--artifacts-dir ./path` to `demo`. Each run creates a unique subdirectory containing the fresh isolated fixture SQLite database. PR-05 will add versioned JSONL event files, manifests, full offline verification and report rendering; these are **not yet provided by PR-04**.
+
+Expected broken and fixed verdicts are scoped to the tested request, failure model and independent observer. They are **not** proof of universal exactly-once processing, arbitrary target commit durability, or general crash safety.
+
 
 A bounded HTTP/1.1 proxy will suppress **one** successful, fully received order response without sending downstream response bytes. The driver retries the identical request. A separate **read-only** SQLite oracle then checks order rows. Against the deliberately broken fixture the experiment must yield FAIL and two rows; against the transactional idempotent fixture it must yield PASS and one row. A missed fault or unavailable observer must never be classified PASS.
 

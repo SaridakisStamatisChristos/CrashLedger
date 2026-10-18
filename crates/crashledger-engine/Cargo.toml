@@ -1,0 +1,15 @@
+[package]
+name = "crashledger-engine"
+version.workspace = true
+edition.workspace = true
+description = "Run orchestration without coupling fault selection to the independent oracle"
+
+[dependencies]
+crashledger-core = { path = "../crashledger-core" }
+crashledger-scenario = { path = "../crashledger-scenario" }
+crashledger-http = { path = "../crashledger-http" }
+crashledger-oracle = { path = "../crashledger-oracle" }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "net", "io-util"] }
+serde_json.workspace = true
+tempfile = "3"
+thiserror.workspace = true

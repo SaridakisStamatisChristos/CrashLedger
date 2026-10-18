@@ -11,3 +11,9 @@ path = "src/main.rs"
 [dependencies]
 clap.workspace = true
 crashledger-scenario = { path = "../crashledger-scenario" }
+crashledger-core = { path = "../crashledger-core" }
+crashledger-engine = { path = "../crashledger-engine" }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+
+[dev-dependencies]
+tempfile = "3"
