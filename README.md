@@ -2,7 +2,7 @@
 
 CrashLedger is a **local-first correctness experiment runner** for controlled failures and independently checked postconditions, implemented in Rust.
 
-## Current scope — PR-07
+## Current scope — PR-08 release-candidate preparation
 
 PR-01 provides the workspace, strict scenario validator and pure verdict evaluator. PR-02 adds a **standalone, independently tested SQLite-backed HTTP order fixture** with intentionally broken and transactionally fixed idempotency modes. PR-03 adds a bounded loopback HTTP/1.1 one-shot suppression proxy and an identical-byte retry driver. PR-04 adds the experiment engine and a direct read-only SQLite observer. The full lost-response demonstration is now available from the CLI; PR-05 persists versioned, manifest-verified evidence and adds an offline report command that reconstructs the verdict.
 
@@ -99,6 +99,18 @@ The first command runs Rust formatting, Clippy, workspace tests including 100 is
 Architecture, correctness boundaries, threat model, evidence v1 schema and ADRs are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/CORRECTNESS_CONTRACT.md](docs/CORRECTNESS_CONTRACT.md), [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md), [docs/EVIDENCE_SCHEMA.md](docs/EVIDENCE_SCHEMA.md) and [docs/adr/](docs/adr/).
 
 Linux CI executes the stress and external-target tests; macOS and Windows CI build and test the portable workspace without the Linux-only stress gate. These jobs must pass before cross-platform support is claimed. No Docker or cloud account is needed.
+
+## v0.1 candidate preflight — PR-08
+
+The release-candidate gate runs from a clean GitHub Actions checkout after Linux/macOS/Windows checks. On a Linux x86_64 machine with Rust, Bash, Python 3 and tar installed:
+
+~~~bash
+bash scripts/rc_preflight.sh ./rc-output
+~~~
+
+Use a **new** output directory name (the script deliberately refuses an existing directory). It builds the locked workspace in release mode; verifies CLI version 0.1.0 and strict schema-v1 handling; runs broken and fixed negative/positive controls; verifies offline Rust JSON reports and independent Python evidence; screens declared dependency licenses; and locally packages the CLI plus standalone fixture with a SHA-256 digest. The script does not push a tag or GitHub Release, and CI does not upload a public binary artifact.
+
+See [docs/RELEASE_CANDIDATE.md](docs/RELEASE_CANDIDATE.md), [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) and [docs/DEPENDENCY_POLICY.md](docs/DEPENDENCY_POLICY.md) for verification scope and pending public-release decisions.
 
 ## Licensing
 

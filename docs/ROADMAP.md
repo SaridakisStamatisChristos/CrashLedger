@@ -13,4 +13,4 @@ Source of truth: CrashLedger_Architecture_MVP_PR_Roadmap_v1.md supplied as the i
 | 07 | Cross-platform CI, docs, threat model and ADRs | CI and documented commands exercise contract; no unverified claims |
 | 08 | v0.1 release candidate | Clean checkout build, broken/fixed demos and evidence readback |
 
-**PR-01 through PR-06 are merged. PR-07 adds cross-platform build/tests, an executable README walk-through and documented architecture/threat model/ADRs. PR-08 is the v0.1 release-candidate gate.** No universal exactly-once guarantee is claimed. License selection remains owner-controlled.
+**PR-01 through PR-07 are merged. PR-08 supplies clean-checkout dependency-locked Linux v0.1 candidate build/demo/evidence/packaging and dependency-license declaration screening. A public release is deliberately blocked until the owner chooses and reviews licensing.** No universal exactly-once guarantee is claimed. License selection remains owner-controlled.
