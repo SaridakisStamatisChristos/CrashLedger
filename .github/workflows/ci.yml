@@ -10,7 +10,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install rustfmt and clippy
         run: rustup component add rustfmt clippy
       - name: Product/license metadata and documentation gate
@@ -81,7 +81,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build portable workspace
         run: cargo build --locked --workspace
       - name: Test portable workspace excluding Linux-only 100-pair stress
@@ -96,7 +96,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Clean checkout dependency-locked release build and end-to-end preflight
         run: bash scripts/rc_preflight.sh ./rc-output
       - name: Confirm Linux candidate tarball and check manifests
