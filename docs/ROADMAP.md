@@ -13,4 +13,4 @@ Source of truth: CrashLedger_Architecture_MVP_PR_Roadmap_v1.md supplied as the i
 | 07 | Cross-platform CI, docs, threat model and ADRs | CI and documented commands exercise contract; no unverified claims |
 | 08 | v0.1 release candidate | Clean checkout build, broken/fixed demos and evidence readback |
 
-**PR-01 through PR-05 are merged. PR-06 implements an authored local-only run with explicit oracle path and a 100-pair isolated demo stress gate. PR-07–08 follow for cross-platform quality gates and release candidate.** No universal exactly-once guarantee is claimed. License selection remains owner-controlled.
+**PR-01 through PR-06 are merged. PR-07 adds cross-platform build/tests, an executable README walk-through and documented architecture/threat model/ADRs. PR-08 is the v0.1 release-candidate gate.** No universal exactly-once guarantee is claimed. License selection remains owner-controlled.

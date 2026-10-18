@@ -7,7 +7,7 @@ use crashledger_http::{Attempt, Event, EventKind};
 use crashledger_scenario::Scenario;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use std::fs::{File, OpenOptions};
+use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -222,6 +222,10 @@ pub fn write_bundle(directory: &Path, capture: &Capture<'_>) -> Result<(), Evide
     }
     // Commit marker: manifest is created LAST. Readers reject partial bundles.
     save_new(&directory.join(MANIFEST), manifest.as_bytes())?;
-    File::open(directory)?.sync_all()?;
+    // Opening a directory as a regular File is unsupported on Windows (os error 5).
+    // Every evidence file has already been sync_all()'d. POSIX directory sync
+    // adds a persistence fence where supported; it is not a portability guarantee.
+    #[cfg(unix)]
+    std::fs::File::open(directory)?.sync_all()?;
     Ok(())
 }
