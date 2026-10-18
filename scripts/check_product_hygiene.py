@@ -61,7 +61,9 @@ def main():
         require((ROOT / name).is_file(), f"missing community/release file: {name}")
 
     for path in [ROOT / "README.md", ROOT / "CONTRIBUTING.md",
-                 ROOT / "SECURITY.md", ROOT / "SUPPORT.md"]:
+                 ROOT / "SECURITY.md", ROOT / "SUPPORT.md",
+                 ROOT / "docs/ARCHITECTURE.md", ROOT / "docs/ROADMAP.md",
+                 ROOT / "docs/SCENARIO_V1.md"]:
         text = path.read_text(encoding="utf-8")
         for raw in re.findall(r"(?<!!)\[[^\]]+\]\(([^)]+)\)", text):
             target = raw.split("#", 1)[0].strip()
@@ -69,6 +71,26 @@ def main():
                 continue
             require((path.parent / target).exists(),
                     f"{path.relative_to(ROOT)}: broken local documentation link {raw}")
+
+    # Keep the active user-facing documentation separate from historical
+    # implementation ledgers. Historical files and attribution are preserved.
+    public_docs = [
+        "README.md", "SUPPORT.md", "docs/ARCHITECTURE.md",
+        "docs/ROADMAP.md", "docs/SCENARIO_V1.md",
+    ]
+    obsolete_internal_terms = (
+        r"\\bR7\\b",
+        r"\\bUCS[- ]Pro\\b",
+        r"\\bTrillion Developer\\b",
+        r"\\bAI[- ]agent\\b",
+        r"\\bAI[- ]generated\\b",
+        r"\\bhandoffs?\\b",
+    )
+    for name in public_docs:
+        contents = (ROOT / name).read_text(encoding="utf-8")
+        for pattern in obsolete_internal_terms:
+            require(not re.search(pattern, contents, flags=re.IGNORECASE),
+                    f"{name}: obsolete internal terminology detected")
 
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     require("Apache-2.0" in readme, "README lacks Apache-2.0 license")
