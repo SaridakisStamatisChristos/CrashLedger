@@ -2,9 +2,9 @@
 
 CrashLedger is a **local-first correctness experiment runner** for controlled failures and independently checked postconditions, implemented in Rust.
 
-## Current scope — PR-01
+## Current scope — PR-02
 
-This first milestone provides a Cargo workspace, a closed/versioned YAML scenario model, strict validation, a pure verdict evaluator, a lifecycle state machine, and a CLI validation command. **It does not yet inject HTTP faults, launch an order fixture, query SQLite, produce a real experiment verdict, or run an end-to-end demo.** Those milestones follow in PR-02 through PR-08. Nothing in PR-01 demonstrates exactly-once delivery or application crash safety.
+PR-01 provides the workspace, strict scenario validator and pure verdict evaluator. PR-02 adds a **standalone, independently tested SQLite-backed HTTP order fixture** with intentionally broken and transactionally fixed idempotency modes. CrashLedger still does **not** inject a response fault, orchestrate the complete experiment or produce a runtime verdict; those milestones begin in PR-03/04.
 
 Requirements and the incremental roadmap are in [docs/ROADMAP.md](docs/ROADMAP.md). The scenario source contract is in [docs/SCENARIO_V1.md](docs/SCENARIO_V1.md).
 
@@ -20,6 +20,19 @@ cargo run --locked -p crashledger-cli -- validate scenarios/lost-ack.yaml
 ~~~
 
 Expected success: VALID plus scenario ID and bound configuration, exit 0. An invalid or unreadable scenario exits 4 with an error. This CLI does not contact the target during validation.
+
+## Standalone fixture — PR-02
+
+Start a local HTTP order server with a fresh DB. The server prints READY plus its OS-selected loopback origin after schema initialization and listener binding:
+
+~~~bash
+cargo run --locked -p crashledger-demo -- --mode broken --db-path ./run-data/orders-broken.sqlite
+cargo run --locked -p crashledger-demo -- --mode fixed --db-path ./run-data/orders-fixed.sqlite
+~~~
+
+Send POST /orders with Content-Type: application/json, Idempotency-Key: demo-order-0001, and JSON body {"sku":"widget-42","quantity":1}. Broken returns HTTP 201 on every identical request. Fixed returns HTTP 201 for first creation and HTTP 200 with the same order_id on identical replay. Same key plus a changed body yields HTTP 409. GET /ready tests that SQLite tables can be queried; it is **not** an application correctness oracle.
+
+For actual verification, workspace tests spawn each mode as a real process and check committed order counts through a **separate SQLite read-only connection**. Run cargo test --locked --workspace.
 
 ## End-to-end objective (not implemented yet)
 
