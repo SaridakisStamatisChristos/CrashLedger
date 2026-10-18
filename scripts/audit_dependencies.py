@@ -17,11 +17,18 @@ def main():
         print("usage: audit_dependencies.py OUTPUT.json", file=sys.stderr)
         return 4
     output = Path(sys.argv[1])
-    raw = subprocess.check_output(
-        ["cargo", "metadata", "--locked", "--offline", "--format-version", "1"],
-        cwd=ROOT,
-        timeout=120
-    )
+    cmd = ["cargo", "metadata", "--locked", "--format-version", "1"]
+    # Fresh Linux runners may lack registry records for Windows-only crates
+    # still listed in Cargo.lock. Attempt offline first; fall back to the
+    # locked graph with registry metadata retrieval, never an unlocked solve.
+    resolution = "offline"
+    try:
+        raw = subprocess.check_output(
+            cmd + ["--offline"], cwd=ROOT, timeout=120, stderr=subprocess.DEVNULL
+        )
+    except subprocess.CalledProcessError:
+        resolution = "locked-registry-fallback"
+        raw = subprocess.check_output(cmd, cwd=ROOT, timeout=120)
     info = json.loads(raw)
     inventory = []
     denied = []
@@ -53,10 +60,11 @@ def main():
         "denied": denied,
         "needs_manual_review": review,
         "compliance_certified": False,
+        "metadata_resolution": resolution,
     }
     output.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(f"DEPENDENCY AUDIT: third-party={len(inventory)} blocked={len(denied)} "
-          f"needs-review={len(review)}; provenance=offline Cargo metadata")
+          f"needs-review={len(review)}; provenance={resolution} Cargo metadata")
     if denied:
         for row in denied:
             print(f"DENIED declared license: {row['name']}@{row['version']}: "
