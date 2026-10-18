@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::net::IpAddr;
 use std::path::{Component, Path};
 use url::{Host, Url};
@@ -190,11 +190,15 @@ fn check_headers(headers: &BTreeMap<String, String>) -> Result<(), ScenarioError
     if headers.len() > 32 {
         return Err(reject("too many HTTP headers"));
     }
+    let mut unique_names = HashSet::new();
     for (k, v) in headers {
+        if !unique_names.insert(k.to_ascii_lowercase()) {
+            return Err(reject("duplicate case-insensitive HTTP header name"));
+        }
         if k.is_empty()
             || !k.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'-')
             || v.len() > 1024
-            || v.bytes().any(|c| c == b'\r' || c == b'\n' || c == 0)
+            || v.bytes().any(|c| c < 32 || c == 127)
         {
             return Err(reject("malformed HTTP header name or value"));
         }
@@ -403,6 +407,7 @@ mod tests {
         );
         bad("Idempotency-Key: demo-order-0001", "Idempotency-Key: ''");
         bad("Content-Type: application/json", "Content-Type: text/plain");
+        bad("      Idempotency-Key: demo-order-0001", "      Idempotency-Key: demo-order-0001\n      idempotency-key: shadow-key");
     }
 
     #[test]
