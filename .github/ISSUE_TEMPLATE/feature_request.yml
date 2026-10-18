@@ -1,0 +1,25 @@
+name: Feature request
+description: Propose a narrowly scoped correctness or developer-experience improvement
+title: "[Feature] "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Explain the reliability failure this would help observe.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior and boundaries
+      description: Include expected inputs, evidence model and non-goals.
+    validations:
+      required: true
+  - type: textarea
+    id: test
+    attributes:
+      label: Acceptance and falsification test
+      description: How would we prove the feature works and reject a misleading PASS?
+    validations:
+      required: true

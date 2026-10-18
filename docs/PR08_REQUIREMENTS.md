@@ -15,3 +15,7 @@
 Completion is **VERIFIED FOR DECLARED INTERNAL LOCAL CANDIDATE** if CI passes. A public release is CONDITIONAL on the owner license decision and full third-party compliance review, and is not executed by this PR.
 
 No encrypted/signed artifacts, remote agents, Docker deployment or arbitrary crash durability tests are applicable to this v0.1 candidate.
+
+## Post-PR08 licensing follow-up
+
+After the original internal PR08 acceptance, the owner selected Apache-2.0 for first-party code. The current release package and license documentation must be evaluated against that later decision; the historical PR08 limitation records the position **at PR08 completion**, not current licensing status.

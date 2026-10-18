@@ -1,19 +1,13 @@
-# CrashLedger v0.1.0 release notes — candidate draft
+# CrashLedger v0.1.0 — candidate release notes
 
-**Not published — draft for internal release candidate evaluation.**
+**Source is Apache-2.0 licensed; official binaries and GitHub Release not yet published.**
 
-CrashLedger is a local-first Rust CLI that demonstrates detection of a duplicate-order invariant violation after a single intentionally suppressed post-commit HTTP response. It runs a canonical broken and fixed order fixture, retries an identical request, observes SQLite state independently, and persists verifiable evidence bundles.
+CrashLedger is a local-first Rust CLI for testing one specific idempotency failure: an order commits, its HTTP acknowledgement disappears, and a byte-identical retry is sent. The tool verifies the resulting order count independently through SQLite, giving a four-valued PASS/FAIL/INCONCLUSIVE/ERROR verdict.
 
-## Included
+**Highlights:** a strict scenario-v1 schema; independently hosted broken and fixed order services; bounded loopback HTTP/1.1 post-response suppression; transactional idempotency negative/positive controls; read-only SQLite scalar oracle; versioned, redacted JSONL/JSON evidence with SHA-256 manifest; offline Rust and Python verifiers; 100 fresh broken/fixed pairs on Linux; portable Cargo builds/tests on macOS and Windows; Apache-2.0 licensing and community contributions guidance.
 
-- Closed/versioned v1 scenario schema and strict loopback-only HTTP/1.1 transport.
-- SQLite broken/fixed reference fixture with fixed transactional idempotency and an independent read-only scalar oracle.
-- One-shot zero-byte response-suppression fault, typed transport evidence and four-valued PASS/FAIL/INCONCLUSIVE/ERROR verdict contract.
-- Golden demo: broken FAIL/two rows/exit 2, fixed PASS/one row/exit 0.
-- Authored separately-started local targets via run --oracle-db ABSOLUTE_PATH.
-- Versioned redacted JSONL/JSON evidence with SHA-256 manifest and offline Rust/Python verifiers.
-- Linux 100-pair stress, macOS and Windows portable build/integration CI, architecture/threat model/ADRs.
+**Canonical demo:** broken service → FAIL, two orders, CLI exit 2. Fixed service → PASS, one order, CLI exit 0.
 
-## Exclusions
+**Known limits:** not a generic exactly-once, process-kill/crash-durability or distributed-fault proof. No remote targets, TLS/HTTP2 or streaming faults. Evidence hashes detect ordinary corruption but are not signatures. No hosted service, SLA or official binary release is claimed. Third-party notice/legal review remains required before distributing official compiled artifacts.
 
-Not a proof of generic exactly-once execution, process crash safety, distributed fault tolerance, TLS/HTTP2, remote testing, signed evidence, or production SaaS. No public license has been selected or granted. Do not redistribute candidate binaries without a license decision and third-party notice review.
+See [README](../README.md), [LICENSE](../LICENSE), [THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md), and [release candidate](RELEASE_CANDIDATE.md).

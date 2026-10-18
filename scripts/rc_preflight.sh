@@ -55,12 +55,15 @@ python3 scripts/test_license_policy.py
 python3 scripts/audit_dependencies.py "$root/dependency-audit.json"
 # Packaging test: both binaries are present and can be unpacked. No upload/publish.
 archive="$root/crashledger-v0.1.0-rc-linux-x86_64.tar.gz"
-tar -czf "$archive" -C target/release crashledger crashledger-demo
+tar -czf "$archive" -C target/release crashledger crashledger-demo -C "$PWD" LICENSE NOTICE THIRD_PARTY_NOTICES.md README.md
 tar -tf "$archive" >"$root/archive-members.txt"
 grep -qx crashledger "$root/archive-members.txt"
 grep -qx crashledger-demo "$root/archive-members.txt"
+for required in LICENSE NOTICE THIRD_PARTY_NOTICES.md README.md; do
+  grep -qx "$required" "$root/archive-members.txt"
+done
 (cd "$root" && sha256sum crashledger-v0.1.0-rc-linux-x86_64.tar.gz > SHA256SUMS)
 echo "RC PREFLIGHT VERIFIED: negative FAIL/2, positive PASS/1, "
 echo "offline reports and independent SHA-256 evidence readback"
 echo "PRIVATE candidate artifacts: $root"
-echo "PUBLIC RELEASE NOT AUTHORIZED: project license selection still required"
+echo "FIRST-PARTY LICENSE: Apache-2.0. Official binary publication requires third-party notices review."

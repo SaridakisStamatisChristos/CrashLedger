@@ -2,6 +2,8 @@
 name = "crashledger-engine"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
+repository.workspace = true
 description = "Run orchestration without coupling fault selection to the independent oracle"
 
 [dependencies]
