@@ -12,6 +12,66 @@ ROOT = Path(__file__).resolve().parent.parent
 DENIED = re.compile(r"\b(?:AGPL|GPL|LGPL|SSPL|EUPL)(?:[-0-9.]|\b)", re.IGNORECASE)
 
 
+def license_has_permitted_choice(expression):
+    """Evaluate simple SPDX AND/OR/WITH precedence conservatively.
+
+    Return True if at least one complete license alternative has no declared
+    disallowed copyleft term, False if all alternatives contain one, and
+    None if syntax is unsupported (then require manual review).
+    """
+    tokens = re.findall(r"\(|\)|\bAND\b|\bOR\b|\bWITH\b|[A-Za-z0-9.+:-]+", expression, re.I)
+    reconstructed = re.sub(r"\s+", "", "".join(tokens))
+    if reconstructed.casefold() != re.sub(r"\s+", "", expression).casefold():
+        return None
+    index = 0
+
+    def primary():
+        nonlocal index
+        if index >= len(tokens):
+            raise ValueError("missing SPDX term")
+        token = tokens[index]
+        index += 1
+        if token == "(":
+            value = disjunction()
+            if index >= len(tokens) or tokens[index] != ")":
+                raise ValueError("unclosed SPDX grouping")
+            index += 1
+            return value
+        if token.upper() in ("AND", "OR", "WITH", ")"):
+            raise ValueError("unexpected SPDX operator")
+        value = not DENIED.search(token)
+        if index < len(tokens) and tokens[index].upper() == "WITH":
+            index += 1
+            if index >= len(tokens) or tokens[index] in ("(", ")", "OR", "AND", "WITH"):
+                raise ValueError("missing SPDX exception")
+            index += 1
+        return value
+
+    def conjunction():
+        nonlocal index
+        value = primary()
+        while index < len(tokens) and tokens[index].upper() == "AND":
+            index += 1
+            value = primary() and value
+        return value
+
+    def disjunction():
+        nonlocal index
+        value = conjunction()
+        while index < len(tokens) and tokens[index].upper() == "OR":
+            index += 1
+            value = conjunction() or value
+        return value
+
+    try:
+        result = disjunction()
+        if index != len(tokens):
+            return None
+        return result
+    except ValueError:
+        return None
+
+
 def main():
     if len(sys.argv) != 2:
         print("usage: audit_dependencies.py OUTPUT.json", file=sys.stderr)
@@ -47,14 +107,15 @@ def main():
             continue
         inventory.append(row)
         license_string = item.get("license") or ""
-        if DENIED.search(license_string):
+        eligibility = license_has_permitted_choice(license_string) if license_string else None
+        if eligibility is False:
             denied.append(row)
-        if not license_string or ("/" in license_string and "http" not in license_string):
+        if eligibility is None or not license_string:
             review.append(row)
     data = {
         "schema_version": 1,
         "scope": "offline Cargo metadata license declarations only",
-        "policy": "deny declared GPL/AGPL/LGPL/SSPL/EUPL; flag undeclared or ambiguous declarations",
+        "policy": "deny expressions lacking a permitted SPDX alternative; flag undeclared or ambiguous metadata",
         "third_party": inventory,
         "first_party_without_granted_license": [x["name"] for x in local],
         "denied": denied,
