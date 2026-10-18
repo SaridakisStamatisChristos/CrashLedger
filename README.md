@@ -13,7 +13,7 @@ It does not guess whether an HTTP request succeeded. A controlled fault proxy di
 
 ## In two commands
 
-Requires [Rust](https://rustup.rs/), Python 3 and Bash on Linux or macOS. Clone the repository, then run:
+Requires [Rust](https://rustup.rs/) (stable toolchain), Python 3 and Bash on Linux or macOS. The additional license/documentation checks require **Python 3.11+**. Clone the repository, then run:
 
 ```bash
 bash scripts/check.sh
@@ -92,6 +92,10 @@ CrashLedger is a small Rust workspace with independent crates for scenarios, HTT
 - [Roadmap](docs/ROADMAP.md)
 
 CI checks Rust formatting, Clippy, the workspace tests and 100 fresh broken/fixed pairs on Linux; macOS and Windows build and run their portable test matrix. The clean-checkout Linux release-candidate gate validates demos, reports and a local binary archive. See [release-candidate notes](docs/RELEASE_CANDIDATE.md).
+
+## Troubleshooting
+
+The first build downloads locked Cargo dependencies. If `--locked` reports a dependency resolution error, check your Rust toolchain and network access rather than deleting `Cargo.lock`. The reference demo requires available local loopback ports and writes evidence to the temporary directory printed by the script. A deliberate `FAIL`/exit 2 for the broken service is expected; the wrapper script succeeds only when both controls and evidence checks pass.
 
 ## Contributing, security and support
 

@@ -21,7 +21,7 @@ Proxy cannot infer if a database transaction committed merely because an HTTP re
 
 ## Verification and evidence
 
-The transport-specific acceptance gates H01–H08 are exercised by the proxy's TCP regression tests, including one-shot concurrency and a genuine zero-byte lost response. The integration suite tests the broken and fixed SQLite services through the same proxy and driver. See the [GitHub Actions workflow](../.github/workflows/ci.yml) and the [latest verified post-productization run](https://github.com/SaridakisStamatisChristos/CrashLedger/actions/runs/39117257580).
+The transport-specific acceptance gates H01–H08 are exercised by the proxy's TCP regression tests, including one-shot concurrency and a genuine zero-byte lost response. The integration suite tests the broken and fixed SQLite services through the same proxy and driver. See the [GitHub Actions workflow](../.github/workflows/ci.yml) and [current workflow runs](https://github.com/SaridakisStamatisChristos/CrashLedger/actions/workflows/ci.yml). Verify the result for the commit being reviewed; historical runs do not attest to later changes.
 
 A proxy event alone cannot establish the target's committed state. The experiment evaluator uses a separate SQLite observation and must treat a missed fault, invalid transport sequence or unavailable observation as ERROR/INCONCLUSIVE as appropriate, never as target FAIL/PASS.
 

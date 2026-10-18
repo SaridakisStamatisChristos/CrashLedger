@@ -66,7 +66,7 @@ jobs:
           set -e
           test "$verify_code" -eq 4
           test "$report_code" -eq 4
-      - name: PR-06 independently managed service and negative cases
+      - name: Standalone service and negative cases
         run: python3 scripts/test_standalone.py
       - name: README demonstration script (two independent controls)
         run: bash scripts/demo.sh

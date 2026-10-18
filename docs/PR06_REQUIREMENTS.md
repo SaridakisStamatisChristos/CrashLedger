@@ -10,7 +10,7 @@
 - **R06-7:** Cancellation/shutdown follows existing PR-03 proxy JoinSet and PR-04 subprocess owner cleanup.
 
 ## Acceptance
-`cargo test --locked --workspace` executes `crashledger-engine/tests/stress_100.rs` and `crashledger-cli/tests/standalone.rs`. The isolated 200-run test uses a new fixture database and run directory every cycle, reads the independent SQLite count, and reads back the SHA-256-verified report. Failure must fail CI; not accept 99/100 as success. Tests exercise external service, observer absent, HTTP 500, unreachable upstream, and explicit DB path requirement.
+`cargo test --locked --workspace` executes `crashledger-engine/tests/stress_100.rs` and the CLI black-box integration tests. Separately, CI runs `python3 scripts/test_standalone.py` against a service launched outside the demo lifecycle. The isolated 200-run Rust stress test uses a new fixture database and run directory every cycle, reads the independent SQLite count, and reads back the SHA-256-verified report. Failure must fail CI; not accept 99/100 as success. Tests exercise external service, observer absent, HTTP 500, unreachable upstream, and explicit DB path requirement.
 
 ## Limits
 No remote target, arbitrary process kill, TLS MITM, production credentials, or general exactly-once claims. The external database must be explicitly selected on the CLI. A newly-created temporary run directory is kept when successful; harness artifacts are not uploaded by default.
