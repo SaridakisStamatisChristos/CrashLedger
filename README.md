@@ -2,7 +2,7 @@
 
 CrashLedger is a **local-first correctness experiment runner** for controlled failures and independently checked postconditions, implemented in Rust.
 
-## Current scope — PR-06
+## Current scope — PR-07
 
 PR-01 provides the workspace, strict scenario validator and pure verdict evaluator. PR-02 adds a **standalone, independently tested SQLite-backed HTTP order fixture** with intentionally broken and transactionally fixed idempotency modes. PR-03 adds a bounded loopback HTTP/1.1 one-shot suppression proxy and an identical-byte retry driver. PR-04 adds the experiment engine and a direct read-only SQLite observer. The full lost-response demonstration is now available from the CLI; PR-05 persists versioned, manifest-verified evidence and adds an offline report command that reconstructs the verdict.
 
@@ -86,6 +86,19 @@ cargo run --locked -p crashledger-cli -- run scenarios/my-local.yaml \
 The CLI does not launch or stop the external target and never infers permission to read an SQLite file from the YAML. It writes a new isolated evidence directory under --out and prints its location. A missing, inaccessible observer or missed fault results in INCONCLUSIVE when workload facts are otherwise available; an unreachable target is an infrastructure ERROR. Re-run the reporter with the printed evidence path.
 
 Black-box acceptance: `python3 scripts/test_standalone.py` runs against separately started fixtures and exercises a nonmatching fault, HTTP 500, missing observer, and unreachable upstream. The workspace stress suite performs **100 fresh broken plus 100 fresh fixed** demos and verifies each complete evidence bundle.
+
+## Reproduce the full demo on Unix-like systems — PR-07
+
+~~~bash
+bash scripts/check.sh
+bash scripts/demo.sh
+~~~
+
+The first command runs Rust formatting, Clippy, workspace tests including 100 isolated broken/fixed pairs, and schema validation. The second builds the CLI and fixture, runs both golden demos and verifies their retained evidence with the independent Python checker. It exits 0 only when the broken service FAILs with two orders and the fixed service PASSes with one order.
+
+Architecture, correctness boundaries, threat model, evidence v1 schema and ADRs are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/CORRECTNESS_CONTRACT.md](docs/CORRECTNESS_CONTRACT.md), [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md), [docs/EVIDENCE_SCHEMA.md](docs/EVIDENCE_SCHEMA.md) and [docs/adr/](docs/adr/).
+
+Linux CI executes the stress and external-target tests; macOS and Windows CI build and test the portable workspace without the Linux-only stress gate. These jobs must pass before cross-platform support is claimed. No Docker or cloud account is needed.
 
 ## Licensing
 

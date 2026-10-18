@@ -64,3 +64,23 @@ jobs:
           test "$report_code" -eq 4
       - name: PR-06 independently managed service and negative cases
         run: python3 scripts/test_standalone.py
+      - name: README demonstration script (two independent controls)
+        run: bash scripts/demo.sh
+
+  portable:
+    name: Portable Rust build + tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build portable workspace
+        run: cargo build --locked --workspace
+      - name: Test portable workspace excluding Linux-only 100-pair stress
+        run: cargo test --locked --workspace --exclude crashledger-engine
+      - name: Validate reference scenario
+        run: cargo run --locked -p crashledger-cli -- validate scenarios/lost-ack.yaml
