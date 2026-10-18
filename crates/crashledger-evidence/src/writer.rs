@@ -148,8 +148,8 @@ pub fn write_bundle(directory: &Path, capture: &Capture<'_>) -> Result<(), Evide
     {
         return Err(invalid("invalid run identifier"));
     }
-    if capture.mode != "broken" && capture.mode != "fixed" {
-        return Err(invalid("only canonical fixture modes supported"));
+    if !["broken", "fixed", "external"].contains(&capture.mode) {
+        return Err(invalid("unsupported fixture mode"));
     }
     if capture.proxy_events.len() > 128 || capture.attempts.len() > 2 {
         return Err(invalid("too many transport facts"));

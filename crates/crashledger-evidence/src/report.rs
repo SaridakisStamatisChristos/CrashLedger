@@ -117,7 +117,7 @@ pub fn read_report(directory: &Path) -> Result<VerifiedReport, EvidenceError> {
         || run.platform.is_empty()
         || run.recorded_unix_ms == 0
         || !valid_digest(&run.scenario_sha256)
-        || !["broken", "fixed"].contains(&run.fixture_mode.as_str())
+        || !["broken", "fixed", "external"].contains(&run.fixture_mode.as_str())
         || run.scenario_id.is_empty()
         || run.upstream_timeout_ms == 0
         || run.experiment_timeout_ms == 0

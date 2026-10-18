@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand, ValueEnum};
-use crashledger_engine::{run_demo, DemoMode};
+use crashledger_engine::{run_demo, run_standalone, DemoMode};
 use crashledger_evidence::read_report;
 use std::path::PathBuf;
 
@@ -46,6 +46,16 @@ enum Command {
         #[arg(long, default_value = "artifacts")]
         artifacts_dir: PathBuf,
     },
+    /// Run an authored v1 scenario against a separately started loopback target.
+    Run {
+        scenario: PathBuf,
+        /// Explicit authorization to read this SQLite file (absolute path).
+        #[arg(long)]
+        oracle_db: PathBuf,
+        /// Root for isolated, immutable-by-convention evidence directories.
+        #[arg(long, default_value = "artifacts")]
+        out: PathBuf,
+    },
     /// Verify SHA-256, validate the event history and reconstruct a stored verdict.
     Report {
         bundle: PathBuf,
@@ -86,6 +96,24 @@ async fn main() {
                 4
             }
         },
+        Command::Run { scenario, oracle_db, out } => {
+            match crashledger_scenario::load_file(&scenario) {
+                Ok(scenario) => match run_standalone(scenario, &oracle_db, &out).await {
+                    Ok(summary) => {
+                        summary.print();
+                        summary.decision.verdict.exit_code()
+                    }
+                    Err(error) => {
+                        eprintln!("ERROR: {error}");
+                        4
+                    }
+                },
+                Err(error) => {
+                    eprintln!("ERROR: {error}");
+                    4
+                }
+            }
+        }
         Command::Report { bundle, format } => match read_report(&bundle) {
             Ok(report) => {
                 match format {

@@ -13,6 +13,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install rustfmt and clippy
         run: rustup component add rustfmt clippy
+      - name: PR-06 temporary formatter capture
+        run: |
+          cargo fmt --all
+          echo CRASHLEDGER_FMT_V6_START
+          git diff -- crates/
+          echo CRASHLEDGER_FMT_V6_END
       - name: Format
         run: cargo fmt --all -- --check
       - name: Lint
@@ -62,3 +68,5 @@ jobs:
           set -e
           test "$verify_code" -eq 4
           test "$report_code" -eq 4
+      - name: PR-06 independently managed service and negative cases
+        run: python3 scripts/test_standalone.py
