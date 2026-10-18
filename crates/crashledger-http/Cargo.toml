@@ -1,0 +1,8 @@
+[package]
+name = "crashledger-http"
+version.workspace = true
+edition.workspace = true
+description = "Bounded loopback HTTP/1.1 response fault proxy and retry driver"
+
+[dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time", "io-util", "sync"] }
