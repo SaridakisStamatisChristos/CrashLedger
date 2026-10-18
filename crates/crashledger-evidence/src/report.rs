@@ -26,7 +26,7 @@ pub struct VerifiedReport {
 impl VerifiedReport {
     pub fn text(&self) -> String {
         format!(
-            "Evidence: VERIFIED (SHA-256, schema v{})\nRun: {}\nScenario: {}\nFixture mode: {}\nFault fired: {}\nAttempts: {} (retry: {})\nFinal HTTP status: {}\nExpected orders: {}\nObserved orders: {}\nVerdict: {:?} ({})\n",
+            "Evidence: VERIFIED (SHA-256, schema v{})\nRun: {}\nScenario: {}\nFixture mode: {}\nFault fired: {}\nAttempts: {} (retry: {})\nFinal HTTP status: {}\nExpected orders: {}\nObserved orders: {}\nVerdict: {} ({})\n",
             self.schema_version, self.run_id, self.scenario_id, self.fixture_mode,
             self.fault_fired, self.attempts, self.retry_occurred,
             self.final_http_status.map_or_else(|| "none".into(), |s| s.to_string()),
