@@ -387,105 +387,6 @@ pub async fn run_demo(mode: DemoMode, artifacts: &Path) -> Result<RunSummary, De
     })
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn synthetic() -> (Vec<Event>, WorkloadResult) {
-        let events = vec![
-            Event {
-                seq: 1,
-                attempt: 1,
-                kind: EventKind::RequestReceived,
-            },
-            Event {
-                seq: 2,
-                attempt: 1,
-                kind: EventKind::UpstreamResponseComplete(201),
-            },
-            Event {
-                seq: 3,
-                attempt: 1,
-                kind: EventKind::FaultFired,
-            },
-            Event {
-                seq: 4,
-                attempt: 2,
-                kind: EventKind::RequestReceived,
-            },
-            Event {
-                seq: 5,
-                attempt: 2,
-                kind: EventKind::UpstreamResponseComplete(200),
-            },
-            Event {
-                seq: 6,
-                attempt: 2,
-                kind: EventKind::DownstreamResponse(200),
-            },
-        ];
-        let result = WorkloadResult {
-            attempts: vec![
-                Attempt::TransportError,
-                Attempt::Http {
-                    status: 200,
-                    body: vec![],
-                },
-            ],
-        };
-        (events, result)
-    }
-    #[test]
-    fn independent_scalar_is_required_and_drives_verdict() {
-        let (events, result) = synthetic();
-        assert_eq!(judge(&events, &result, Some(1), 1).verdict, Verdict::Pass);
-        assert_eq!(judge(&events, &result, Some(2), 1).verdict, Verdict::Fail);
-        assert_eq!(
-            judge(&events, &result, None, 1).verdict,
-            Verdict::Inconclusive
-        );
-    }
-    #[test]
-    fn missing_fault_retry_or_transport_sequence_never_passes() {
-        let (mut events, mut result) = synthetic();
-        events.retain(|e| e.kind != EventKind::FaultFired);
-        for (i, e) in events.iter_mut().enumerate() {
-            e.seq = i + 1;
-        }
-        assert_eq!(
-            judge(&events, &result, Some(1), 1).verdict,
-            Verdict::Inconclusive
-        );
-        let (events, _) = synthetic();
-        result.attempts.truncate(1);
-        assert_ne!(judge(&events, &result, Some(1), 1).verdict, Verdict::Pass);
-        let (_, mut result) = synthetic();
-        result.attempts[0] = Attempt::Http {
-            status: 201,
-            body: vec![],
-        };
-        assert_eq!(
-            judge(&events, &result, Some(1), 1).verdict,
-            Verdict::Inconclusive
-        );
-    }
-    #[test]
-    fn mismatched_trace_order_or_proxy_error_fails_closed() {
-        let (mut events, result) = synthetic();
-        events[1].kind = EventKind::FaultFired;
-        events[2].kind = EventKind::UpstreamResponseComplete(201);
-        assert_eq!(judge(&events, &result, Some(1), 1).verdict, Verdict::Error);
-        let (mut events, result) = synthetic();
-        events.push(Event {
-            seq: 7,
-            attempt: 2,
-            kind: EventKind::ProxyError,
-        });
-        assert_eq!(judge(&events, &result, Some(1), 1).verdict, Verdict::Error);
-    }
-}
-
-
 /// Explicit user-authored local scenario runner. The database path is supplied
 /// independently on the CLI; a YAML file alone never authorizes access to it.
 /// No owned target process is spawned in this mode.
@@ -593,3 +494,103 @@ impl StandaloneSummary {
         println!("Artifacts: {}", self.run_directory.display());
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn synthetic() -> (Vec<Event>, WorkloadResult) {
+        let events = vec![
+            Event {
+                seq: 1,
+                attempt: 1,
+                kind: EventKind::RequestReceived,
+            },
+            Event {
+                seq: 2,
+                attempt: 1,
+                kind: EventKind::UpstreamResponseComplete(201),
+            },
+            Event {
+                seq: 3,
+                attempt: 1,
+                kind: EventKind::FaultFired,
+            },
+            Event {
+                seq: 4,
+                attempt: 2,
+                kind: EventKind::RequestReceived,
+            },
+            Event {
+                seq: 5,
+                attempt: 2,
+                kind: EventKind::UpstreamResponseComplete(200),
+            },
+            Event {
+                seq: 6,
+                attempt: 2,
+                kind: EventKind::DownstreamResponse(200),
+            },
+        ];
+        let result = WorkloadResult {
+            attempts: vec![
+                Attempt::TransportError,
+                Attempt::Http {
+                    status: 200,
+                    body: vec![],
+                },
+            ],
+        };
+        (events, result)
+    }
+    #[test]
+    fn independent_scalar_is_required_and_drives_verdict() {
+        let (events, result) = synthetic();
+        assert_eq!(judge(&events, &result, Some(1), 1).verdict, Verdict::Pass);
+        assert_eq!(judge(&events, &result, Some(2), 1).verdict, Verdict::Fail);
+        assert_eq!(
+            judge(&events, &result, None, 1).verdict,
+            Verdict::Inconclusive
+        );
+    }
+    #[test]
+    fn missing_fault_retry_or_transport_sequence_never_passes() {
+        let (mut events, mut result) = synthetic();
+        events.retain(|e| e.kind != EventKind::FaultFired);
+        for (i, e) in events.iter_mut().enumerate() {
+            e.seq = i + 1;
+        }
+        assert_eq!(
+            judge(&events, &result, Some(1), 1).verdict,
+            Verdict::Inconclusive
+        );
+        let (events, _) = synthetic();
+        result.attempts.truncate(1);
+        assert_ne!(judge(&events, &result, Some(1), 1).verdict, Verdict::Pass);
+        let (_, mut result) = synthetic();
+        result.attempts[0] = Attempt::Http {
+            status: 201,
+            body: vec![],
+        };
+        assert_eq!(
+            judge(&events, &result, Some(1), 1).verdict,
+            Verdict::Inconclusive
+        );
+    }
+    #[test]
+    fn mismatched_trace_order_or_proxy_error_fails_closed() {
+        let (mut events, result) = synthetic();
+        events[1].kind = EventKind::FaultFired;
+        events[2].kind = EventKind::UpstreamResponseComplete(201);
+        assert_eq!(judge(&events, &result, Some(1), 1).verdict, Verdict::Error);
+        let (mut events, result) = synthetic();
+        events.push(Event {
+            seq: 7,
+            attempt: 2,
+            kind: EventKind::ProxyError,
+        });
+        assert_eq!(judge(&events, &result, Some(1), 1).verdict, Verdict::Error);
+    }
+}
+
