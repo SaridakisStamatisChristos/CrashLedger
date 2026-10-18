@@ -9,6 +9,7 @@ crashledger-core = { path = "../crashledger-core" }
 crashledger-scenario = { path = "../crashledger-scenario" }
 crashledger-http = { path = "../crashledger-http" }
 crashledger-oracle = { path = "../crashledger-oracle" }
+crashledger-evidence = { path = "../crashledger-evidence" }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "net", "io-util"] }
 serde_json.workspace = true
 tempfile = "3"

@@ -13,6 +13,16 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install rustfmt and clippy
         run: rustup component add rustfmt clippy
+      - name: PR-05 temporary lockfile and rustfmt provenance
+        run: |
+          cargo generate-lockfile
+          echo CRASHLEDGER_LOCK_V5_START
+          cat Cargo.lock
+          echo CRASHLEDGER_LOCK_V5_END
+          cargo fmt --all
+          echo CRASHLEDGER_FMT_V5_START
+          git diff -- crates/
+          echo CRASHLEDGER_FMT_V5_END
       - name: Format
         run: cargo fmt --all -- --check
       - name: Lint
@@ -39,3 +49,26 @@ jobs:
           grep -q 'Verdict: PASS' fixed-demo.log
           grep -q 'orders_for_key = 1; expected = 1' fixed-demo.log
           grep -q 'Attempts: 2' fixed-demo.log
+      - name: Independent offline bundle verification
+        run: |
+          broken_dir="$(sed -n 's/^Artifacts: //p' broken-demo.log | tail -1)"
+          fixed_dir="$(sed -n 's/^Artifacts: //p' fixed-demo.log | tail -1)"
+          test -n "$broken_dir" && test -n "$fixed_dir"
+          python3 scripts/verify_bundle.py "$broken_dir" --expect-mode broken --expect-verdict FAIL --expect-count 2
+          python3 scripts/verify_bundle.py "$fixed_dir" --expect-mode fixed --expect-verdict PASS --expect-count 1
+          cargo run --locked -p crashledger-cli -- report "$broken_dir" --format text
+          cargo run --locked -p crashledger-cli -- report "$fixed_dir" --format json
+          python3 - "$fixed_dir" <<'PY'
+          from pathlib import Path
+          import sys
+          target = Path(sys.argv[1]) / "events.jsonl"
+          target.write_bytes(target.read_bytes() + b"TAMPER\n")
+          PY
+          set +e
+          python3 scripts/verify_bundle.py "$fixed_dir"
+          verify_code=$?
+          cargo run --locked -p crashledger-cli -- report "$fixed_dir" --format json
+          report_code=$?
+          set -e
+          test "$verify_code" -eq 4
+          test "$report_code" -eq 4

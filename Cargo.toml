@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/crashledger-core", "crates/crashledger-scenario", "crates/crashledger-cli", "crates/crashledger-http", "crates/crashledger-oracle", "crates/crashledger-engine", "fixtures/order-service"]
+members = ["crates/crashledger-core", "crates/crashledger-scenario", "crates/crashledger-cli", "crates/crashledger-http", "crates/crashledger-oracle", "crates/crashledger-engine", "crates/crashledger-evidence", "fixtures/order-service"]
 resolver = "2"
 
 [workspace.package]

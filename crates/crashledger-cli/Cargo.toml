@@ -13,6 +13,8 @@ clap.workspace = true
 crashledger-scenario = { path = "../crashledger-scenario" }
 crashledger-core = { path = "../crashledger-core" }
 crashledger-engine = { path = "../crashledger-engine" }
+crashledger-evidence = { path = "../crashledger-evidence" }
+serde_json.workspace = true
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 
 [dev-dependencies]
