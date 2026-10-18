@@ -1,15 +1,26 @@
-# Dependency and project licensing preflight (PR-08)
+# Apache-2.0 first-party and third-party dependency policy
 
-CrashLedger currently has **no owner-selected source-code license**. No license is presumed or granted. Do not publish a public GitHub Release, tag, downloadable binary or redistribute packages until the owner explicitly selects a license and the required legal/license review is complete.
+**CrashLedger first-party source code is licensed under Apache-2.0.** See [LICENSE](../LICENSE) and [NOTICE](../NOTICE). The copyright owner has selected the project license; the earlier no-license restriction is superseded.
 
-Run the dependency declaration inventory (offline-first) on a built workspace:
+This does **not** relicense upstream crates, remove third-party obligations, confer certification, or automatically authorize publication of an official binary release.
 
-~~~bash
+## Automated gate
+
+```bash
+python3 scripts/test_license_policy.py
 python3 scripts/audit_dependencies.py dependency-audit.json
-~~~
+```
 
-The script attempts cargo metadata --locked --offline first, then allows a locked registry-metadata fallback when fresh runners lack target-specific package records; the resolution path is recorded. It inventories third-party packages plus their declared license and license_file metadata. It evaluates straightforward SPDX AND/OR/WITH license expressions. It fails when every complete alternative requires AGPL, GPL, LGPL, SSPL or EUPL; a declared permissive OR branch such as MIT OR LGPL is eligible under this metadata screen. Missing/ambiguous declarations still require **manual review**. This is not legal advice or certified license compliance. First-party crates without a license are listed separately. The JSON explicitly sets compliance_certified to false, because metadata is not a substitute for full license texts, notices, component behavior, legal advice or actual distribution compliance.
+The dependency inventory uses `cargo metadata --locked --offline` where possible, with locked-registry fallback when a fresh runner lacks target-specific metadata. It checks first-party packages for `Apache-2.0` metadata, lists the resolved third-party crates and SPDX declarations, and evaluates basic AND/OR/WITH alternatives. It fails when all detected complete license alternatives contain the currently excluded AGPL, GPL, LGPL, SSPL or EUPL terms. A permitted OR branch (such as `MIT OR LGPL-3.0`) can pass the metadata screen. Missing/unsupported expressions require manual review. This is a deliberately conservative project policy, not a statement that all copyleft dependencies are necessarily illegal to distribute.
 
-The private RC preflight checks that no currently declared dependency is prohibited. Even if that screen passes, a manual inventory/notice/license decision remains a public release blocker. Rust bundles sqlite locally via rusqlite/libsqlite3-sys; verify any applicable source and notice obligations before distribution.
+The JSON result sets `compliance_certified: false` by design: a declaration-only screen cannot prove notice fulfillment, bundled-source obligations, redistribution rights, or full legal compliance. The compiler may bundle SQLite through rusqlite/libsqlite3-sys; its applicable notices and other native dependencies must be reviewed before any official binary publication.
 
-Do not claim license clearance based only on a green CI job. No automatic license file, copyright assignment, or public release is created here.
+## Official release checklist
+
+1. Confirm first-party `LICENSE`, `NOTICE` and Apache-2.0 Cargo metadata.
+2. Produce the locked, versioned dependency inventory; resolve every `needs_manual_review` entry.
+3. Examine actual third-party license texts, bundled native code and required notices/attributions; update [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md) accordingly.
+4. Confirm artifacts include the Apache license, owner notice, third-party documentation and checksums.
+5. Perform a release-specific compatibility and security review; publish only through a separately approved release operation.
+
+The internal release-candidate CI exercises the metadata and packaging gates, but steps 2–5 are not automatically certified or treated as complete.

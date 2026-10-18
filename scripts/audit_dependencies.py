@@ -94,6 +94,7 @@ def main():
     denied = []
     review = []
     local = []
+    first_party_issues = []
     for item in sorted(info["packages"], key=lambda p: (p["name"], p["version"])):
         row = {
             "name": item["name"],
@@ -104,6 +105,8 @@ def main():
         }
         if item["source"] is None:
             local.append(row)
+            if item.get("license") != "Apache-2.0":
+                first_party_issues.append(row)
             continue
         inventory.append(row)
         license_string = item.get("license") or ""
@@ -117,7 +120,9 @@ def main():
         "scope": "offline Cargo metadata license declarations only",
         "policy": "deny expressions lacking a permitted SPDX alternative; flag undeclared or ambiguous metadata",
         "third_party": inventory,
-        "first_party_without_granted_license": [x["name"] for x in local],
+        "first_party": local,
+        "first_party_license_errors": first_party_issues,
+        "first_party_without_granted_license": [x["name"] for x in first_party_issues],
         "denied": denied,
         "needs_manual_review": review,
         "compliance_certified": False,
@@ -126,6 +131,11 @@ def main():
     output.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(f"DEPENDENCY AUDIT: third-party={len(inventory)} blocked={len(denied)} "
           f"needs-review={len(review)}; provenance={resolution} Cargo metadata")
+    if first_party_issues:
+        for row in first_party_issues:
+            print(f"INVALID first-party license: {row['name']}@{row['version']}: "
+                  f"{row['license_declaration']}", file=sys.stderr)
+        return 4
     if denied:
         for row in denied:
             print(f"DENIED declared license: {row['name']}@{row['version']}: "
@@ -133,7 +143,7 @@ def main():
         return 4
     if review:
         print("Manual review remains necessary for undeclared/ambiguous license metadata.")
-    print("No project license has been chosen or granted; no release/publication authorized.")
+    print("First-party license: Apache-2.0. Manual third-party notices review remains required before an official binary release.")
     return 0
 
 

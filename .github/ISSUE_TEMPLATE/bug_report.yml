@@ -1,0 +1,35 @@
+name: Bug report
+description: Report reproducible incorrect behavior (not private security vulnerabilities)
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: "Do not submit secrets, private SQLite files, or unredacted evidence. Security issues belong in private reporting."
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      placeholder: "0.1.0 / git SHA"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Platform and toolchain
+      placeholder: "Ubuntu 24.04 / rustc --version"
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: Include a sanitized scenario and commands when practical.
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Expected vs actual result
+      description: Include exact verdict/exit codes and independent observation.
+    validations:
+      required: true

@@ -1,0 +1,9 @@
+CrashLedger
+Copyright 2026 Stamatis-Christos Saridakis
+
+CrashLedger is licensed under the Apache License, Version 2.0.
+See LICENSE for the complete license text.
+
+This notice applies to first-party CrashLedger code. Third-party dependencies
+retain their respective copyright holders and license terms.
+See THIRD_PARTY_NOTICES.md and docs/DEPENDENCY_POLICY.md for dependency review.

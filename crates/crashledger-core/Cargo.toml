@@ -2,6 +2,8 @@
 name = "crashledger-core"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
+repository.workspace = true
 description = "Pure typed verdict evaluation and state transitions for CrashLedger"
 
 [dependencies]

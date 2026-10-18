@@ -10,4 +10,4 @@
 
 Windows directory sync is intentionally not attempted as POSIX File::open(directory). All evidence **files** are individually synced; Linux/macOS additionally sync the directory where supported. This is not a guarantee of durability under arbitrary power loss.
 
-Portable workspace CI does not run the 100-pair Linux stress matrix on Windows/macOS. No remote target, networked database, TLS, containers, root privileges, or cloud account is required. Linux tarball is not a public redistributable release without an owner license decision.
+Portable workspace CI does not run the 100-pair Linux stress matrix on Windows/macOS. No remote target, networked database, TLS, containers, root privileges, or cloud account is required. Linux tarball is a local candidate, not an official published release; source is Apache-2.0 licensed, but complete third-party license/notice review and official-release approval remain open.

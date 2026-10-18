@@ -1,36 +1,32 @@
-# CrashLedger 0.1.0 — internal release candidate
+# CrashLedger v0.1.0 — internally verified release candidate
 
-**Status: candidate preflight, not a published release.** A GitHub tag or Release has deliberately **not** been created. The owner has not selected a license, so public distribution/licensing is unresolved.
+**Status: open-source source distribution, internal binary-release rehearsal. No public GitHub Release has been published.**
 
-## Target user and test
+The owner selected **Apache License 2.0** for the first-party CrashLedger code. Source files and Rust package metadata carry that license, and the local release archive includes `LICENSE`, `NOTICE`, `THIRD_PARTY_NOTICES.md`, and `README.md`. The third-party notice inventory is **not yet certified complete**; this remains an explicit prerequisite before publishing binaries.
 
-The first deliverable is a local correctness experiment tool for engineers who need to reproduce a lost post-commit HTTP response and observe whether a retry duplicates an SQLite order. It is not an arbitrary crash-fault verifier.
+## Reproduce from a fresh Linux x86_64 checkout
 
-The clean-checkout script accepts a new output directory:
-
-~~~bash
+```bash
 bash scripts/rc_preflight.sh ./rc-output
-~~~
+```
 
-It runs cargo build --release --locked --workspace and validates:
-- crashledger --version is 0.1.0 and schema_version 2 is rejected with exit 4;
-- canonical broken demo: suppressed successful first response, retry, SQLite count 2, FAIL, exit 2;
-- canonical fixed demo: identical retry, SQLite count 1, PASS, exit 0;
-- both offline Rust JSON reports and external Python SHA-256/causal verifier agree;
-- packaged Linux x86_64 tarball contains crashledger and crashledger-demo, and SHA256SUMS checks;
-- locked metadata-based dependency license screen has no prohibited declarations; registry metadata may be fetched if the fresh runner lacks uncached platform packages.
+The preflight builds the committed Cargo.lock workspace with `--release`, checks the CLI's 0.1.0 version, validates scenario v1 and rejects schema v2, executes broken and fixed reference services with the true zero-byte lost-response fault, reads the resulting isolated SQLite state independently, verifies offline Rust and Python reports, screens declared dependency licenses, and packs both binaries and licensing documents into a local tarball with SHA-256 digest.
 
-Generated outputs under rc-output: scenario logs, broken/fixed console transcripts, reports, version, dependency-audit.json, unique sample artifact bundles, Linux tarball and SHA256SUMS. Output is **private/local to the execution environment**. No implicit upload, tag creation, external deploy or release publication.
+The release-candidate job in [CI](../.github/workflows/ci.yml) runs only after successful Linux full acceptance and macOS/Windows portable verification. These jobs are *verification* activities, not a public binary distribution or an authenticated artifact provenance statement.
 
-## Scope limitations
+## Acceptance evidence and limits
 
-Evidence is redacted and SHA-256 checked against accidental corruption, not cryptographically signed. Scenario snapshot is non-executable. Runtime verdicts are limited to the stated invariant/fault/observer on one local run. Windows/macOS build/test gates do not imply Linux packaging guarantees extend to those platforms, and do not execute the 100-pair stress suite.
+| Gate | Expected |
+| --- | --- |
+| Broken demo | FAIL, two orders, exit 2 |
+| Fixed demo | PASS, one order, exit 0 |
+| Evidence readback | Rust and independent Python verifiers accept both |
+| Corruption control | Modified evidence rejected |
+| Dependency declarations | First-party Apache-2.0 and no excluded complete third-party alternative |
+| Local archive | Two release executables, LICENSE, NOTICE, third-party notices document and README; checksum verifies |
 
-## Public release blockers
+Only the indicated loopback SQLite lost-ack experiment is covered. The redacted snapshot is not replayable and SHA-256 is not cryptographic authentication. Portability for macOS/Windows is scoped to their tested jobs; Linux is the validated candidate packaging target. Cargo.lock pins dependencies, but `rust-toolchain.toml` tracks stable rather than a frozen compiler, so the build is **not** claimed bit-for-bit reproducible.
 
-1. Owner must explicitly select and document project licensing.
-2. Third-party declarations and notice/license obligations require manual review; metadata screen is not a legal compliance sign-off.
-3. If binaries are publicly distributed, add the appropriate license and third-party notices and verify platform packages, checksums and provenance.
-4. Optional: signed artifacts and a documented release workflow; neither is required for this *internal candidate* milestone.
+## Remaining distribution steps
 
-After these decisions, a separate owner-authorized action may publish a GitHub tag/release. The PR-08 merge itself does not publish anything.
+Manual third-party notices/license-text review, packaged executable review and owner approval of the actual GitHub Release remain open. The existing CI artifact stays local to the runner and is not attached to a public Release. No credentials, external network deployment, hosted service or general crash-durability claims are implied.

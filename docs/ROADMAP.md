@@ -13,4 +13,6 @@ Source of truth: CrashLedger_Architecture_MVP_PR_Roadmap_v1.md supplied as the i
 | 07 | Cross-platform CI, docs, threat model and ADRs | CI and documented commands exercise contract; no unverified claims |
 | 08 | v0.1 release candidate | Clean checkout build, broken/fixed demos and evidence readback |
 
-**PR-01 through PR-07 are merged. PR-08 supplies clean-checkout dependency-locked Linux v0.1 candidate build/demo/evidence/packaging and dependency-license declaration screening. A public release is deliberately blocked until the owner chooses and reviews licensing.** No universal exactly-once guarantee is claimed. License selection remains owner-controlled.
+**PR-01 through PR-08 are merged.** The subsequent productization change establishes Apache-2.0 licensing, Rust package metadata, a coherent user journey, contribution/security policies, a documented license audit and a license-inclusive internal release package.
+
+A public compiled-binary release still requires a complete third-party license/notice review and a separate owner-authorized publication action. No universal exactly-once guarantee is claimed.
