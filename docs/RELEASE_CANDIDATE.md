@@ -18,7 +18,7 @@ It runs cargo build --release --locked --workspace and validates:
 - canonical fixed demo: identical retry, SQLite count 1, PASS, exit 0;
 - both offline Rust JSON reports and external Python SHA-256/causal verifier agree;
 - packaged Linux x86_64 tarball contains crashledger and crashledger-demo, and SHA256SUMS checks;
-- metadata-based dependency license screen has no prohibited declarations.
+- locked metadata-based dependency license screen has no prohibited declarations; registry metadata may be fetched if the fresh runner lacks uncached platform packages.
 
 Generated outputs under rc-output: scenario logs, broken/fixed console transcripts, reports, version, dependency-audit.json, unique sample artifact bundles, Linux tarball and SHA256SUMS. Output is **private/local to the execution environment**. No implicit upload, tag creation, external deploy or release publication.
 

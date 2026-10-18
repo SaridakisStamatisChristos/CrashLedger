@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline dependency license *declaration* screen for a local RC.
+"""Locked dependency license *declaration* screen, offline-first.
 Does not certify legal compliance; unresolved/undeclared licenses are surfaced.
 """
 import json

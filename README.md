@@ -108,7 +108,7 @@ The release-candidate gate runs from a clean GitHub Actions checkout after Linux
 bash scripts/rc_preflight.sh ./rc-output
 ~~~
 
-Use a **new** output directory name (the script deliberately refuses an existing directory). It builds the locked workspace in release mode; verifies CLI version 0.1.0 and strict schema-v1 handling; runs broken and fixed negative/positive controls; verifies offline Rust JSON reports and independent Python evidence; screens declared dependency licenses; and locally packages the CLI plus standalone fixture with a SHA-256 digest. The script does not push a tag or GitHub Release, and CI does not upload a public binary artifact.
+Use a **new** output directory name (the script deliberately refuses an existing directory). It builds the locked workspace in release mode; verifies CLI version 0.1.0 and strict schema-v1 handling; runs broken and fixed negative/positive controls; verifies offline Rust JSON reports and independent Python evidence; screens declared dependency licenses (offline-first, with locked metadata fallback); and locally packages the CLI plus standalone fixture with a SHA-256 digest. The script does not push a tag or GitHub Release, and CI does not upload a public binary artifact.
 
 See [docs/RELEASE_CANDIDATE.md](docs/RELEASE_CANDIDATE.md), [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) and [docs/DEPENDENCY_POLICY.md](docs/DEPENDENCY_POLICY.md) for verification scope and pending public-release decisions.
 
