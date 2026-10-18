@@ -1,0 +1,5 @@
+# Stable parsing fixtures and scripts across checkout environments
+*.yaml text eol=lf
+*.yml text eol=lf
+*.sh text eol=lf
+*.py text eol=lf
