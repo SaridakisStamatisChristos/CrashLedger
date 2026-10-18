@@ -208,7 +208,16 @@ async fn read_message(stream: &mut TcpStream, max_body: usize, request: bool) ->
         if head.len() >= MAX_HEADER_BYTES {
             return Err(invalid_data("HTTP header exceeds 16 KiB"));
         }
-        let read = stream.read(&mut byte).await?;
+        let read = match stream.read(&mut byte).await {
+            Ok(n) => n,
+            Err(e) if e.kind() == io::ErrorKind::ConnectionReset && head.is_empty() => {
+                return Err(io::Error::new(io::ErrorKind::ConnectionAborted, "reset before response bytes"));
+            }
+            Err(e) if e.kind() == io::ErrorKind::ConnectionReset => {
+                return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "reset during HTTP header"));
+            }
+            Err(e) => return Err(e),
+        };
         if read == 0 {
             return if head.is_empty() {
                 Err(io::Error::new(io::ErrorKind::ConnectionAborted, "no response bytes received"))
@@ -359,7 +368,7 @@ pub async fn retry_post(
                     status: response.status.expect("response parser supplies status"),
                     body: response.bytes[response.bytes.windows(4).position(|w| w == b"\r\n\r\n").expect("parsed HTTP headers") + 4..].to_vec(),
                 }),
-                Err(e) if e.kind() == io::ErrorKind::ConnectionAborted || e.kind() == io::ErrorKind::ConnectionReset => {
+                Err(e) if e.kind() == io::ErrorKind::ConnectionAborted => {
                     Ok(Attempt::TransportError)
                 }
                 Err(e) => Err(e),
