@@ -1,0 +1,8 @@
+[package]
+name = "crashledger-core"
+version.workspace = true
+edition.workspace = true
+description = "Pure typed verdict evaluation and state transitions for CrashLedger"
+
+[dependencies]
+serde.workspace = true

@@ -1,0 +1,13 @@
+[package]
+name = "crashledger-cli"
+version.workspace = true
+edition.workspace = true
+description = "CrashLedger local correctness experiment CLI"
+
+[[bin]]
+name = "crashledger"
+path = "src/main.rs"
+
+[dependencies]
+clap.workspace = true
+crashledger-scenario = { path = "../crashledger-scenario" }
