@@ -407,7 +407,10 @@ mod tests {
         );
         bad("Idempotency-Key: demo-order-0001", "Idempotency-Key: ''");
         bad("Content-Type: application/json", "Content-Type: text/plain");
-        bad("      Idempotency-Key: demo-order-0001", "      Idempotency-Key: demo-order-0001\n      idempotency-key: shadow-key");
+        bad(
+            "      Idempotency-Key: demo-order-0001",
+            "      Idempotency-Key: demo-order-0001\n      idempotency-key: shadow-key",
+        );
     }
 
     #[test]
