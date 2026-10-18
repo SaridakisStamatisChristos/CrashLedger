@@ -13,6 +13,16 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install rustfmt and clippy
         run: rustup component add rustfmt clippy
+      - name: PR-02 temporary lock and format evidence capture
+        run: |
+          cargo generate-lockfile
+          echo CRASHLEDGER_LOCK_V2_START
+          cat Cargo.lock
+          echo CRASHLEDGER_LOCK_V2_END
+          cargo fmt --all
+          echo CRASHLEDGER_FMT_DIFF_START
+          git diff -- crates/ fixtures/
+          echo CRASHLEDGER_FMT_DIFF_END
       - name: Format
         run: cargo fmt --all -- --check
       - name: Lint
