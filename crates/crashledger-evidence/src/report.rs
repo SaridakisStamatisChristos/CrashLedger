@@ -32,7 +32,7 @@ impl VerifiedReport {
             self.final_http_status.map_or_else(|| "none".into(), |s| s.to_string()),
             self.expected,
             self.observed.map_or_else(|| "unavailable".into(), |v| v.to_string()),
-            self.verdict, self.reason,
+            match self.verdict { Verdict::Pass => "PASS", Verdict::Fail => "FAIL", Verdict::Inconclusive => "INCONCLUSIVE", Verdict::Error => "ERROR" }, self.reason,
         )
     }
 }
@@ -164,10 +164,11 @@ pub fn read_report(directory: &Path) -> Result<VerifiedReport, EvidenceError> {
         if attempt == 0 || attempt as usize > run.attempts {
             return Err(invalid("transport event attempt out of range"));
         }
+        let prior_received = attempt == 1 || traces[(attempt - 2) as usize].received;
         let trace = &mut traces[(attempt - 1) as usize];
         match event.kind.as_str() {
             "request_sent" if event.status.is_none() && !trace.sent => {
-                if attempt > 1 && !traces[(attempt - 2) as usize].received {
+                if !prior_received {
                     return Err(invalid("retry occurs before prior request"));
                 }
                 trace.sent = true;
