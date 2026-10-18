@@ -2,9 +2,9 @@
 
 CrashLedger is a **local-first correctness experiment runner** for controlled failures and independently checked postconditions, implemented in Rust.
 
-## Current scope — PR-02
+## Current scope — PR-03
 
-PR-01 provides the workspace, strict scenario validator and pure verdict evaluator. PR-02 adds a **standalone, independently tested SQLite-backed HTTP order fixture** with intentionally broken and transactionally fixed idempotency modes. CrashLedger still does **not** inject a response fault, orchestrate the complete experiment or produce a runtime verdict; those milestones begin in PR-03/04.
+PR-01 provides the workspace, strict scenario validator and pure verdict evaluator. PR-02 adds a **standalone, independently tested SQLite-backed HTTP order fixture** with intentionally broken and transactionally fixed idempotency modes. PR-03 adds a bounded loopback HTTP/1.1 one-shot suppression proxy and an identical-byte retry driver. The full experiment engine, independent runtime oracle and demo verdict are deferred to PR-04.
 
 Requirements and the incremental roadmap are in [docs/ROADMAP.md](docs/ROADMAP.md). The scenario source contract is in [docs/SCENARIO_V1.md](docs/SCENARIO_V1.md).
 
@@ -33,6 +33,12 @@ cargo run --locked -p crashledger-demo -- --mode fixed --db-path ./run-data/orde
 Send POST /orders with Content-Type: application/json, Idempotency-Key: demo-order-0001, and JSON body {"sku":"widget-42","quantity":1}. Broken returns HTTP 201 on every identical request. Fixed returns HTTP 201 for first creation and HTTP 200 with the same order_id on identical replay. Same key plus a changed body yields HTTP 409. GET /ready tests that SQLite tables can be queried; it is **not** an application correctness oracle.
 
 For actual verification, workspace tests spawn each mode as a real process and check committed order counts through a **separate SQLite read-only connection**. Run cargo test --locked --workspace.
+
+## HTTP/1.1 transport fault and retry — PR-03
+
+The `crashledger-http` library exposes `Proxy::start`, `retry_post` and typed transport events for orchestration by the future engine. The proxy binds an OS-selected localhost port and forwards bounded POST requests to a configured loopback upstream. It fully buffers a successful 2xx response and, for the **first** exact path match only, closes the downstream socket **without writing response bytes**. After this transport failure, the driver makes one retry with **identical body and key bytes**. Ordinary 4xx/5xx replies are forwarded and do not trigger retries. A missed fault does not imply application correctness.
+
+It is deliberately HTTP/1.1 only: Content-Length framing is required, transfer encoding/chunked streams and protocol upgrades are rejected, and no remote upstream is accepted. All worker tasks are joined or cancelled on `shutdown`. The library records events but **does not decide PASS/FAIL**. Run `cargo test --locked --workspace` to exercise the proxy against a controlled TCP upstream.
 
 ## End-to-end objective (not implemented yet)
 
