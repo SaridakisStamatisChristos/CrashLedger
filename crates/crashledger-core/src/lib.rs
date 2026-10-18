@@ -45,7 +45,11 @@ pub struct InvalidTransition {
 
 impl std::fmt::Display for InvalidTransition {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "invalid state transition: {:?} -> {:?}", self.from, self.to)
+        write!(
+            f,
+            "invalid state transition: {:?} -> {:?}",
+            self.from, self.to
+        )
     }
 }
 
@@ -176,7 +180,10 @@ mod tests {
 
     #[test]
     fn state_transitions_are_restricted() {
-        assert_eq!(Phase::Loaded.transition(Phase::Validated), Ok(Phase::Validated));
+        assert_eq!(
+            Phase::Loaded.transition(Phase::Validated),
+            Ok(Phase::Validated)
+        );
         assert!(Phase::Loaded.transition(Phase::Complete).is_err());
         assert!(Phase::Complete.transition(Phase::Executing).is_err());
         assert!(Phase::Observing.transition(Phase::Inconclusive).is_ok());
