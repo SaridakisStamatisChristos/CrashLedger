@@ -27,14 +27,20 @@ fn as_sql_value(v: &JsonValue) -> Result<Value, OracleError> {
                     OracleError::InvalidParameter("integer exceeds SQLite signed range")
                 })?)
             } else {
-                let f = n.as_f64().ok_or(OracleError::InvalidParameter("invalid number"))?;
+                let f = n
+                    .as_f64()
+                    .ok_or(OracleError::InvalidParameter("invalid number"))?;
                 if !f.is_finite() {
                     return Err(OracleError::InvalidParameter("non-finite number"));
                 }
                 Value::Real(f)
             }
         }
-        _ => return Err(OracleError::InvalidParameter("only scalar parameters supported")),
+        _ => {
+            return Err(OracleError::InvalidParameter(
+                "only scalar parameters supported",
+            ))
+        }
     })
 }
 
@@ -59,10 +65,14 @@ pub fn observe_sqlite_scalar(
     if stmt.parameter_count() != parameters.len() {
         return Err(OracleError::InvalidShape("incorrect bound-parameter count"));
     }
-    let bound: Vec<Value> = parameters.iter().map(as_sql_value).collect::<Result<_, _>>()?;
+    let bound: Vec<Value> = parameters
+        .iter()
+        .map(as_sql_value)
+        .collect::<Result<_, _>>()?;
     let mut rows = stmt.query(params_from_iter(bound.iter()))?;
     let row = rows.next()?.ok_or(OracleError::InvalidShape("zero rows"))?;
-    let scalar = row.get::<_, i64>(0)
+    let scalar = row
+        .get::<_, i64>(0)
         .map_err(|_| OracleError::InvalidShape("value is not a SQLite integer"))?;
     if rows.next()?.is_some() {
         return Err(OracleError::InvalidShape("multiple rows"));
@@ -78,31 +88,52 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let db = dir.path().join("state.sqlite");
         let conn = Connection::open(&db).unwrap();
-        conn.execute_batch("CREATE TABLE orders(id INTEGER PRIMARY KEY, key TEXT);").unwrap();
+        conn.execute_batch("CREATE TABLE orders(id INTEGER PRIMARY KEY, key TEXT);")
+            .unwrap();
         for _ in 0..2 {
-            conn.execute("INSERT INTO orders(key) VALUES(?1)", params!["abc"]).unwrap();
+            conn.execute("INSERT INTO orders(key) VALUES(?1)", params!["abc"])
+                .unwrap();
         }
         (dir, db)
     }
     #[test]
     fn independent_parameterized_count_reads_committed_state() {
         let (_dir, path) = fixture();
-        let count = observe_sqlite_scalar(&path, "SELECT COUNT(*) FROM orders WHERE key=?1", &[JsonValue::String("abc".into())]).unwrap();
+        let count = observe_sqlite_scalar(
+            &path,
+            "SELECT COUNT(*) FROM orders WHERE key=?1",
+            &[JsonValue::String("abc".into())],
+        )
+        .unwrap();
         assert_eq!(count, 2);
-        let absent = observe_sqlite_scalar(&path, "SELECT COUNT(*) FROM orders WHERE key=?1", &[JsonValue::String("missing".into())]).unwrap();
+        let absent = observe_sqlite_scalar(
+            &path,
+            "SELECT COUNT(*) FROM orders WHERE key=?1",
+            &[JsonValue::String("missing".into())],
+        )
+        .unwrap();
         assert_eq!(absent, 0);
     }
     #[test]
     fn absent_or_malformed_observation_cannot_return_integer() {
         let (_dir, path) = fixture();
-        let missing = observe_sqlite_scalar(&path.with_file_name("absent.sqlite"), "SELECT COUNT(*) FROM orders", &[]);
+        let missing = observe_sqlite_scalar(
+            &path.with_file_name("absent.sqlite"),
+            "SELECT COUNT(*) FROM orders",
+            &[],
+        );
         assert!(missing.is_err());
         assert!(observe_sqlite_scalar(&path, "SELECT id,key FROM orders", &[]).is_err());
         assert!(observe_sqlite_scalar(&path, "SELECT id FROM orders", &[]).is_err());
         assert!(observe_sqlite_scalar(&path, "SELECT NULL", &[]).is_err());
         assert!(observe_sqlite_scalar(&path, "SELECT 'one'", &[]).is_err());
-        assert!(observe_sqlite_scalar(&path, "SELECT COUNT(*) FROM orders WHERE key=?1", &[]).is_err());
+        assert!(
+            observe_sqlite_scalar(&path, "SELECT COUNT(*) FROM orders WHERE key=?1", &[]).is_err()
+        );
         assert!(observe_sqlite_scalar(&path, "UPDATE orders SET key='mutated'", &[]).is_err());
-        assert_eq!(observe_sqlite_scalar(&path, "SELECT COUNT(*) FROM orders", &[]).unwrap(), 2);
+        assert_eq!(
+            observe_sqlite_scalar(&path, "SELECT COUNT(*) FROM orders", &[]).unwrap(),
+            2
+        );
     }
 }

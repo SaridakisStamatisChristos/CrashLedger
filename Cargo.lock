@@ -207,7 +207,11 @@ name = "crashledger-cli"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "crashledger-core",
+ "crashledger-engine",
  "crashledger-scenario",
+ "tempfile",
+ "tokio",
 ]
 
 [[package]]
@@ -232,10 +236,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "crashledger-engine"
+version = "0.1.0"
+dependencies = [
+ "crashledger-core",
+ "crashledger-http",
+ "crashledger-oracle",
+ "crashledger-scenario",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "crashledger-http"
 version = "0.1.0"
 dependencies = [
  "tokio",
+]
+
+[[package]]
+name = "crashledger-oracle"
+version = "0.1.0"
+dependencies = [
+ "rusqlite",
+ "serde_json",
+ "tempfile",
+ "thiserror",
 ]
 
 [[package]]

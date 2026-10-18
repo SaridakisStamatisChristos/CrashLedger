@@ -30,9 +30,7 @@ impl From<Mode> for DemoMode {
 #[derive(Subcommand)]
 enum Command {
     /// Validate a closed-schema scenario without contacting its target.
-    Validate {
-        scenario: PathBuf,
-    },
+    Validate { scenario: PathBuf },
     /// Run the same lost-response scenario against a fresh broken or fixed fixture.
     Demo {
         #[arg(long, value_enum)]
@@ -62,7 +60,10 @@ async fn main() {
                 4
             }
         },
-        Command::Demo { mode, artifacts_dir } => match run_demo(mode.into(), &artifacts_dir).await {
+        Command::Demo {
+            mode,
+            artifacts_dir,
+        } => match run_demo(mode.into(), &artifacts_dir).await {
             Ok(summary) => {
                 summary.print();
                 summary.decision.verdict.exit_code()

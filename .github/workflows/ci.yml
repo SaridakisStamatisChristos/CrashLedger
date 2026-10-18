@@ -13,16 +13,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install rustfmt and clippy
         run: rustup component add rustfmt clippy
-      - name: PR-04 bootstrap Cargo lock and exact formatter output
-        run: |
-          cargo generate-lockfile
-          echo CRASHLEDGER_LOCK_V4_START
-          cat Cargo.lock
-          echo CRASHLEDGER_LOCK_V4_END
-          cargo fmt --all
-          echo CRASHLEDGER_FMT_V4_START
-          git diff -- crates/
-          echo CRASHLEDGER_FMT_V4_END
       - name: Format
         run: cargo fmt --all -- --check
       - name: Lint

@@ -55,7 +55,10 @@ impl RunSummary {
     pub fn print(&self) {
         println!("Scenario: {}", self.scenario_id);
         println!("Fixture mode: {}", self.mode.as_str());
-        println!("Fault: suppress_response [fired {} time(s) after upstream response]", self.fault_count);
+        println!(
+            "Fault: suppress_response [fired {} time(s) after upstream response]",
+            self.fault_count
+        );
         let first = match self.attempts.first() {
             Some(Attempt::TransportError) => "transport error".to_owned(),
             Some(Attempt::Http { status, .. }) => format!("HTTP {status}"),
@@ -66,7 +69,10 @@ impl RunSummary {
             Some(Attempt::Http { status, .. }) => format!("HTTP {status}"),
             None => "none".to_owned(),
         };
-        println!("Attempts: {} (first: {first}; second: {final_attempt})", self.attempts.len());
+        println!(
+            "Attempts: {} (first: {first}; second: {final_attempt})",
+            self.attempts.len()
+        );
         match self.observation {
             Some(value) => println!(
                 "Independent SQLite observation: orders_for_key = {value}; expected = {}",
@@ -107,7 +113,9 @@ fn fixture_binary() -> Result<PathBuf, DemoError> {
     if let Some(custom) = std::env::var_os("CRASHLEDGER_FIXTURE_BIN") {
         let path = PathBuf::from(custom);
         if !path.is_file() {
-            return Err(DemoError::Internal("CRASHLEDGER_FIXTURE_BIN does not exist".into()));
+            return Err(DemoError::Internal(
+                "CRASHLEDGER_FIXTURE_BIN does not exist".into(),
+            ));
         }
         return Ok(path);
     }
@@ -124,7 +132,9 @@ fn fixture_binary() -> Result<PathBuf, DemoError> {
         .args(["build", "--locked", "--quiet", "-p", "crashledger-demo"])
         .status()?;
     if !status.success() {
-        return Err(DemoError::Internal("cannot build standalone order fixture".into()));
+        return Err(DemoError::Internal(
+            "cannot build standalone order fixture".into(),
+        ));
     }
     let target = std::env::var_os("CARGO_TARGET_DIR")
         .map(PathBuf::from)
@@ -132,31 +142,38 @@ fn fixture_binary() -> Result<PathBuf, DemoError> {
         .unwrap_or_else(|| root.join("target"));
     let built = target.join("debug").join(basename);
     if !built.is_file() {
-        return Err(DemoError::Internal("built fixture binary could not be located".into()));
+        return Err(DemoError::Internal(
+            "built fixture binary could not be located".into(),
+        ));
     }
     Ok(built)
 }
 
 fn check_fixture_readiness(address: SocketAddr) -> Result<(), DemoError> {
     if !address.ip().is_loopback() || address.port() == 0 {
-        return Err(DemoError::Internal("fixture advertised unsafe address".into()));
+        return Err(DemoError::Internal(
+            "fixture advertised unsafe address".into(),
+        ));
     }
     let mut stream = TcpStream::connect_timeout(&address, Duration::from_secs(3))?;
     stream.set_read_timeout(Some(Duration::from_secs(3)))?;
     stream.set_write_timeout(Some(Duration::from_secs(3)))?;
-    let request = format!(
-        "GET /ready HTTP/1.1\r\nHost: {address}\r\nConnection: close\r\n\r\n"
-    );
+    let request = format!("GET /ready HTTP/1.1\r\nHost: {address}\r\nConnection: close\r\n\r\n");
     stream.write_all(request.as_bytes())?;
     let mut reply = Vec::new();
     stream.read_to_end(&mut reply)?;
     if !reply.starts_with(b"HTTP/1.1 200 ") {
-        return Err(DemoError::Internal("fixture readiness did not confirm SQLite".into()));
+        return Err(DemoError::Internal(
+            "fixture readiness did not confirm SQLite".into(),
+        ));
     }
     Ok(())
 }
 
-async fn start_fixture(mode: DemoMode, path: &Path) -> Result<(OwnedFixture, SocketAddr), DemoError> {
+async fn start_fixture(
+    mode: DemoMode,
+    path: &Path,
+) -> Result<(OwnedFixture, SocketAddr), DemoError> {
     let bin = fixture_binary()?;
     let mut child = Command::new(bin)
         .args(["--mode", mode.as_str(), "--db-path"])
@@ -165,15 +182,19 @@ async fn start_fixture(mode: DemoMode, path: &Path) -> Result<(OwnedFixture, Soc
         .stdout(Stdio::piped())
         .stderr(Stdio::inherit())
         .spawn()?;
-    let stdout = child.stdout.take().ok_or_else(|| {
-        DemoError::Internal("fixture stdout not captured".into())
-    })?;
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| DemoError::Internal("fixture stdout not captured".into()))?;
     let owner = OwnedFixture { child };
-    let line = tokio::time::timeout(Duration::from_secs(30), tokio::task::spawn_blocking(move || {
-        let mut line = String::new();
-        io::BufReader::new(stdout).read_line(&mut line)?;
-        Ok::<_, io::Error>(line)
-    }))
+    let line = tokio::time::timeout(
+        Duration::from_secs(30),
+        tokio::task::spawn_blocking(move || {
+            let mut line = String::new();
+            io::BufReader::new(stdout).read_line(&mut line)?;
+            Ok::<_, io::Error>(line)
+        }),
+    )
     .await
     .map_err(|_| DemoError::Internal("fixture readiness timeout".into()))?
     .map_err(|e| DemoError::Internal(format!("fixture readiness join failed: {e}")))??;
@@ -188,39 +209,56 @@ async fn start_fixture(mode: DemoMode, path: &Path) -> Result<(OwnedFixture, Soc
 }
 
 fn header<'a>(scenario: &'a Scenario, name: &str) -> Result<&'a str, DemoError> {
-    scenario.workload.request.headers.iter()
+    scenario
+        .workload
+        .request
+        .headers
+        .iter()
         .find(|(k, _)| k.eq_ignore_ascii_case(name))
         .map(|(_, v)| v.as_str())
         .ok_or_else(|| DemoError::Internal(format!("missing scenario header {name}")))
 }
 
 fn validate_history(events: &[Event]) -> bool {
-    let fault = events.iter().filter(|e| e.kind == EventKind::FaultFired).collect::<Vec<_>>();
+    let fault = events
+        .iter()
+        .filter(|e| e.kind == EventKind::FaultFired)
+        .collect::<Vec<_>>();
     if fault.len() != 1 {
         return fault.is_empty(); // Missing fault -> INCONCLUSIVE, not an internal contradiction.
     }
     let claimed = fault[0];
-    let completed_first = events.iter().any(|e|
+    let completed_first = events.iter().any(|e| {
         e.attempt == claimed.attempt
             && e.seq < claimed.seq
             && matches!(e.kind, EventKind::UpstreamResponseComplete(200..=299))
-    );
-    let no_successful_first_delivery = !events.iter().any(|e|
-        e.attempt == claimed.attempt
-            && matches!(e.kind, EventKind::DownstreamResponse(_))
-    );
+    });
+    let no_successful_first_delivery = !events.iter().any(|e| {
+        e.attempt == claimed.attempt && matches!(e.kind, EventKind::DownstreamResponse(_))
+    });
     completed_first && no_successful_first_delivery
 }
 
-pub fn judge(events: &[Event], result: &WorkloadResult, observed: Option<i64>, expected: i64) -> Decision {
-    let fired = events.iter().filter(|e| e.kind == EventKind::FaultFired).count();
+pub fn judge(
+    events: &[Event],
+    result: &WorkloadResult,
+    observed: Option<i64>,
+    expected: i64,
+) -> Decision {
+    let fired = events
+        .iter()
+        .filter(|e| e.kind == EventKind::FaultFired)
+        .count();
     let proxy_failed = events.iter().any(|e| e.kind == EventKind::ProxyError);
-    let event_count = events.iter().filter(|e| e.kind == EventKind::RequestReceived).count();
+    let event_count = events
+        .iter()
+        .filter(|e| e.kind == EventKind::RequestReceived)
+        .count();
     let trace_invalid = !validate_history(events)
         || event_count != result.attempts.len()
         || events.iter().enumerate().any(|(i, e)| e.seq != i + 1);
-    let proper_retry = result.attempts.len() == 2
-        && result.attempts.first() == Some(&Attempt::TransportError);
+    let proper_retry =
+        result.attempts.len() == 2 && result.attempts.first() == Some(&Attempt::TransportError);
     let final_status = if proper_retry {
         match result.attempts.get(1) {
             Some(Attempt::Http { status, .. }) => Some(*status),
@@ -246,14 +284,21 @@ pub fn judge(events: &[Event], result: &WorkloadResult, observed: Option<i64>, e
 pub async fn run_demo(mode: DemoMode, artifacts: &Path) -> Result<RunSummary, DemoError> {
     let mut phase = Phase::Loaded;
     let mut scenario = parse_str(GOLDEN)?;
-    phase = phase.transition(Phase::Validated).map_err(|e| DemoError::Internal(e.to_string()))?;
+    phase = phase
+        .transition(Phase::Validated)
+        .map_err(|e| DemoError::Internal(e.to_string()))?;
     std::fs::create_dir_all(artifacts)?;
-    let run_dir = tempfile::Builder::new().prefix("r-").tempdir_in(artifacts)?.keep();
+    let run_dir = tempfile::Builder::new()
+        .prefix("r-")
+        .tempdir_in(artifacts)?
+        .keep();
     let db = run_dir.join("run-data").join("orders.sqlite");
     let (_fixture, upstream) = start_fixture(mode, &db).await?;
     scenario.target.base_url = format!("http://{upstream}");
     scenario.validate()?;
-    phase = phase.transition(Phase::Ready).map_err(|e| DemoError::Internal(e.to_string()))?;
+    phase = phase
+        .transition(Phase::Ready)
+        .map_err(|e| DemoError::Internal(e.to_string()))?;
     let config = ProxyConfig {
         upstream,
         fault_path: scenario.fault.matcher.path.clone(),
@@ -262,7 +307,9 @@ pub async fn run_demo(mode: DemoMode, artifacts: &Path) -> Result<RunSummary, De
         upstream_timeout: Duration::from_millis(scenario.limits.upstream_timeout_ms),
     };
     let proxy = Proxy::start(config).await?;
-    phase = phase.transition(Phase::Executing).map_err(|e| DemoError::Internal(e.to_string()))?;
+    phase = phase
+        .transition(Phase::Executing)
+        .map_err(|e| DemoError::Internal(e.to_string()))?;
     let raw_json = serde_json::to_vec(&scenario.workload.request.json)?;
     let retry = tokio::time::timeout(
         Duration::from_millis(scenario.limits.experiment_timeout_ms),
@@ -275,13 +322,18 @@ pub async fn run_demo(mode: DemoMode, artifacts: &Path) -> Result<RunSummary, De
             scenario.limits.max_response_bytes,
             Duration::from_millis(scenario.limits.upstream_timeout_ms),
         ),
-    ).await;
-    phase = phase.transition(Phase::Quiescing).map_err(|e| DemoError::Internal(e.to_string()))?;
+    )
+    .await;
+    phase = phase
+        .transition(Phase::Quiescing)
+        .map_err(|e| DemoError::Internal(e.to_string()))?;
     let events = proxy.shutdown().await;
     let result = retry
         .map_err(|_| DemoError::Internal("experiment workload timed out".into()))?
         .map_err(|e| DemoError::Internal(format!("experiment workload transport failed: {e}")))?;
-    phase = phase.transition(Phase::Observing).map_err(|e| DemoError::Internal(e.to_string()))?;
+    phase = phase
+        .transition(Phase::Observing)
+        .map_err(|e| DemoError::Internal(e.to_string()))?;
     // This direct connection is READ_ONLY. It is neither shared with the target
     // service nor derived from the target's HTTP response.
     let observation = observe_sqlite_scalar(&db, &scenario.oracle.sql, &scenario.oracle.parameters);
@@ -289,13 +341,17 @@ pub async fn run_demo(mode: DemoMode, artifacts: &Path) -> Result<RunSummary, De
         Ok(n) => (Some(n), None),
         Err(e) => (None, Some(e.to_string())),
     };
-    phase = phase.transition(Phase::Evaluating).map_err(|e| DemoError::Internal(e.to_string()))?;
+    phase = phase
+        .transition(Phase::Evaluating)
+        .map_err(|e| DemoError::Internal(e.to_string()))?;
     let decision = judge(&events, &result, observed, scenario.oracle.expected_integer);
-    phase = phase.transition(match decision.verdict {
-        Verdict::Error => Phase::Error,
-        Verdict::Inconclusive => Phase::Inconclusive,
-        Verdict::Pass | Verdict::Fail => Phase::Complete,
-    }).map_err(|e| DemoError::Internal(e.to_string()))?;
+    phase = phase
+        .transition(match decision.verdict {
+            Verdict::Error => Phase::Error,
+            Verdict::Inconclusive => Phase::Inconclusive,
+            Verdict::Pass | Verdict::Fail => Phase::Complete,
+        })
+        .map_err(|e| DemoError::Internal(e.to_string()))?;
     let _terminal = phase;
     Ok(RunSummary {
         mode,
@@ -305,7 +361,10 @@ pub async fn run_demo(mode: DemoMode, artifacts: &Path) -> Result<RunSummary, De
         observation: observed,
         observation_error,
         expected: scenario.oracle.expected_integer,
-        fault_count: events.iter().filter(|e| e.kind == EventKind::FaultFired).count(),
+        fault_count: events
+            .iter()
+            .filter(|e| e.kind == EventKind::FaultFired)
+            .count(),
         attempts: result.attempts,
         events,
     })
@@ -317,17 +376,46 @@ mod tests {
 
     fn synthetic() -> (Vec<Event>, WorkloadResult) {
         let events = vec![
-            Event { seq: 1, attempt: 1, kind: EventKind::RequestReceived },
-            Event { seq: 2, attempt: 1, kind: EventKind::UpstreamResponseComplete(201) },
-            Event { seq: 3, attempt: 1, kind: EventKind::FaultFired },
-            Event { seq: 4, attempt: 2, kind: EventKind::RequestReceived },
-            Event { seq: 5, attempt: 2, kind: EventKind::UpstreamResponseComplete(200) },
-            Event { seq: 6, attempt: 2, kind: EventKind::DownstreamResponse(200) },
+            Event {
+                seq: 1,
+                attempt: 1,
+                kind: EventKind::RequestReceived,
+            },
+            Event {
+                seq: 2,
+                attempt: 1,
+                kind: EventKind::UpstreamResponseComplete(201),
+            },
+            Event {
+                seq: 3,
+                attempt: 1,
+                kind: EventKind::FaultFired,
+            },
+            Event {
+                seq: 4,
+                attempt: 2,
+                kind: EventKind::RequestReceived,
+            },
+            Event {
+                seq: 5,
+                attempt: 2,
+                kind: EventKind::UpstreamResponseComplete(200),
+            },
+            Event {
+                seq: 6,
+                attempt: 2,
+                kind: EventKind::DownstreamResponse(200),
+            },
         ];
-        let result = WorkloadResult { attempts: vec![
-            Attempt::TransportError,
-            Attempt::Http { status: 200, body: vec![] },
-        ] };
+        let result = WorkloadResult {
+            attempts: vec![
+                Attempt::TransportError,
+                Attempt::Http {
+                    status: 200,
+                    body: vec![],
+                },
+            ],
+        };
         (events, result)
     }
     #[test]
@@ -335,20 +423,34 @@ mod tests {
         let (events, result) = synthetic();
         assert_eq!(judge(&events, &result, Some(1), 1).verdict, Verdict::Pass);
         assert_eq!(judge(&events, &result, Some(2), 1).verdict, Verdict::Fail);
-        assert_eq!(judge(&events, &result, None, 1).verdict, Verdict::Inconclusive);
+        assert_eq!(
+            judge(&events, &result, None, 1).verdict,
+            Verdict::Inconclusive
+        );
     }
     #[test]
     fn missing_fault_retry_or_transport_sequence_never_passes() {
         let (mut events, mut result) = synthetic();
         events.retain(|e| e.kind != EventKind::FaultFired);
-        for (i, e) in events.iter_mut().enumerate() { e.seq = i + 1; }
-        assert_eq!(judge(&events, &result, Some(1), 1).verdict, Verdict::Inconclusive);
+        for (i, e) in events.iter_mut().enumerate() {
+            e.seq = i + 1;
+        }
+        assert_eq!(
+            judge(&events, &result, Some(1), 1).verdict,
+            Verdict::Inconclusive
+        );
         let (events, _) = synthetic();
         result.attempts.truncate(1);
         assert_ne!(judge(&events, &result, Some(1), 1).verdict, Verdict::Pass);
         let (_, mut result) = synthetic();
-        result.attempts[0] = Attempt::Http { status: 201, body: vec![] };
-        assert_eq!(judge(&events, &result, Some(1), 1).verdict, Verdict::Inconclusive);
+        result.attempts[0] = Attempt::Http {
+            status: 201,
+            body: vec![],
+        };
+        assert_eq!(
+            judge(&events, &result, Some(1), 1).verdict,
+            Verdict::Inconclusive
+        );
     }
     #[test]
     fn mismatched_trace_order_or_proxy_error_fails_closed() {
@@ -357,7 +459,11 @@ mod tests {
         events[2].kind = EventKind::UpstreamResponseComplete(201);
         assert_eq!(judge(&events, &result, Some(1), 1).verdict, Verdict::Error);
         let (mut events, result) = synthetic();
-        events.push(Event { seq: 7, attempt: 2, kind: EventKind::ProxyError });
+        events.push(Event {
+            seq: 7,
+            attempt: 2,
+            kind: EventKind::ProxyError,
+        });
         assert_eq!(judge(&events, &result, Some(1), 1).verdict, Verdict::Error);
     }
 }
