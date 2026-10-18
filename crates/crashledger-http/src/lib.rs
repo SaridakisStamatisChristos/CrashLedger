@@ -104,7 +104,12 @@ impl Proxy {
         let server = tokio::spawn(async move {
             serve(listener, worker, stopped).await;
         });
-        Ok(Self { address, shared, stop: Some(stop), server })
+        Ok(Self {
+            address,
+            shared,
+            stop: Some(stop),
+            server,
+        })
     }
 
     pub fn fault_fired(&self) -> bool {
@@ -171,7 +176,10 @@ async fn serve(listener: TcpListener, shared: Shared, mut stop: oneshot::Receive
     // Waiting for tasks to finish is bounded. No detached proxy tasks survive.
     if tokio::time::timeout(Duration::from_secs(5), async {
         while workers.join_next().await.is_some() {}
-    }).await.is_err() {
+    })
+    .await
+    .is_err()
+    {
         workers.abort_all();
         while workers.join_next().await.is_some() {}
     }
@@ -190,7 +198,9 @@ fn valid_path(path: &str) -> bool {
         && !path.starts_with("//")
         && path.len() <= 2048
         && !path.contains(['?', '#', '\\', '\r', '\n', ' '])
-        && !path.split('/').any(|segment| segment == ".." || segment == ".")
+        && !path
+            .split('/')
+            .any(|segment| segment == ".." || segment == ".")
 }
 
 #[derive(Debug)]
@@ -201,7 +211,11 @@ struct Message {
     path: Option<String>,
 }
 
-async fn read_message(stream: &mut TcpStream, max_body: usize, request: bool) -> io::Result<Message> {
+async fn read_message(
+    stream: &mut TcpStream,
+    max_body: usize,
+    request: bool,
+) -> io::Result<Message> {
     let mut head = Vec::new();
     let mut byte = [0u8; 1];
     loop {
@@ -211,18 +225,30 @@ async fn read_message(stream: &mut TcpStream, max_body: usize, request: bool) ->
         let read = match stream.read(&mut byte).await {
             Ok(n) => n,
             Err(e) if e.kind() == io::ErrorKind::ConnectionReset && head.is_empty() => {
-                return Err(io::Error::new(io::ErrorKind::ConnectionAborted, "reset before response bytes"));
+                return Err(io::Error::new(
+                    io::ErrorKind::ConnectionAborted,
+                    "reset before response bytes",
+                ));
             }
             Err(e) if e.kind() == io::ErrorKind::ConnectionReset => {
-                return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "reset during HTTP header"));
+                return Err(io::Error::new(
+                    io::ErrorKind::UnexpectedEof,
+                    "reset during HTTP header",
+                ));
             }
             Err(e) => return Err(e),
         };
         if read == 0 {
             return if head.is_empty() {
-                Err(io::Error::new(io::ErrorKind::ConnectionAborted, "no response bytes received"))
+                Err(io::Error::new(
+                    io::ErrorKind::ConnectionAborted,
+                    "no response bytes received",
+                ))
             } else {
-                Err(io::Error::new(io::ErrorKind::UnexpectedEof, "partial HTTP header"))
+                Err(io::Error::new(
+                    io::ErrorKind::UnexpectedEof,
+                    "partial HTTP header",
+                ))
             };
         }
         head.push(byte[0]);
@@ -232,11 +258,16 @@ async fn read_message(stream: &mut TcpStream, max_body: usize, request: bool) ->
     }
     let header = std::str::from_utf8(&head).map_err(|_| invalid_data("non-UTF8 HTTP header"))?;
     let mut lines = header.split("\r\n");
-    let first = lines.next().ok_or_else(|| invalid_data("missing HTTP start line"))?;
+    let first = lines
+        .next()
+        .ok_or_else(|| invalid_data("missing HTTP start line"))?;
     let (status, method, path) = if request {
         let parts: Vec<_> = first.split(' ').collect();
-        if parts.len() != 3 || parts[0] != "POST" || parts[2] != "HTTP/1.1" || !valid_path(parts[1]) {
-            return Err(invalid_data("only POST with an absolute HTTP/1.1 path is supported"));
+        if parts.len() != 3 || parts[0] != "POST" || parts[2] != "HTTP/1.1" || !valid_path(parts[1])
+        {
+            return Err(invalid_data(
+                "only POST with an absolute HTTP/1.1 path is supported",
+            ));
         }
         (None, Some(parts[0].to_owned()), Some(parts[1].to_owned()))
     } else {
@@ -245,7 +276,9 @@ async fn read_message(stream: &mut TcpStream, max_body: usize, request: bool) ->
             return Err(invalid_data("upstream must speak HTTP/1.1"));
         }
         let code = parts.next().ok_or_else(|| invalid_data("missing status"))?;
-        let parsed: u16 = code.parse().map_err(|_| invalid_data("invalid HTTP status"))?;
+        let parsed: u16 = code
+            .parse()
+            .map_err(|_| invalid_data("invalid HTTP status"))?;
         if !(200..=599).contains(&parsed) || code.len() != 3 {
             return Err(invalid_data("unsupported HTTP status"));
         }
@@ -253,11 +286,15 @@ async fn read_message(stream: &mut TcpStream, max_body: usize, request: bool) ->
     };
     let mut content_length = None;
     for line in lines {
-        if line.is_empty() { continue; }
+        if line.is_empty() {
+            continue;
+        }
         if line.starts_with([' ', '\t']) {
             return Err(invalid_data("folded headers not supported"));
         }
-        let (name, value) = line.split_once(':').ok_or_else(|| invalid_data("malformed HTTP header"))?;
+        let (name, value) = line
+            .split_once(':')
+            .ok_or_else(|| invalid_data("malformed HTTP header"))?;
         if name.is_empty() || !name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-') {
             return Err(invalid_data("invalid header name"));
         }
@@ -271,7 +308,10 @@ async fn read_message(stream: &mut TcpStream, max_body: usize, request: bool) ->
             if content_length.is_some() {
                 return Err(invalid_data("ambiguous duplicate content-length"));
             }
-            let len = value.trim().parse::<usize>().map_err(|_| invalid_data("bad content-length"))?;
+            let len = value
+                .trim()
+                .parse::<usize>()
+                .map_err(|_| invalid_data("bad content-length"))?;
             content_length = Some(len);
         }
     }
@@ -283,31 +323,50 @@ async fn read_message(stream: &mut TcpStream, max_body: usize, request: bool) ->
     stream.read_exact(&mut body).await?;
     let mut bytes = head;
     bytes.extend(body);
-    Ok(Message { bytes, status, method, path })
+    Ok(Message {
+        bytes,
+        status,
+        method,
+        path,
+    })
 }
 
 async fn handle_connection(mut client: TcpStream, shared: Shared, attempt: u32) -> io::Result<()> {
     let config = &shared.config;
     let request = tokio::time::timeout(
-        config.upstream_timeout, read_message(&mut client, config.max_request_bytes, true),
-    ).await.map_err(|_| io::Error::new(io::ErrorKind::TimedOut, "request deadline"))??;
+        config.upstream_timeout,
+        read_message(&mut client, config.max_request_bytes, true),
+    )
+    .await
+    .map_err(|_| io::Error::new(io::ErrorKind::TimedOut, "request deadline"))??;
     shared.log(attempt, EventKind::RequestReceived).await;
 
-    let mut upstream = tokio::time::timeout(config.upstream_timeout, TcpStream::connect(config.upstream))
-        .await.map_err(|_| io::Error::new(io::ErrorKind::TimedOut, "connect deadline"))??;
+    let mut upstream =
+        tokio::time::timeout(config.upstream_timeout, TcpStream::connect(config.upstream))
+            .await
+            .map_err(|_| io::Error::new(io::ErrorKind::TimedOut, "connect deadline"))??;
     tokio::time::timeout(config.upstream_timeout, upstream.write_all(&request.bytes))
-        .await.map_err(|_| io::Error::new(io::ErrorKind::TimedOut, "write deadline"))??;
+        .await
+        .map_err(|_| io::Error::new(io::ErrorKind::TimedOut, "write deadline"))??;
     let response = tokio::time::timeout(
-        config.upstream_timeout, read_message(&mut upstream, config.max_response_bytes, false),
-    ).await.map_err(|_| io::Error::new(io::ErrorKind::TimedOut, "response deadline"))??;
+        config.upstream_timeout,
+        read_message(&mut upstream, config.max_response_bytes, false),
+    )
+    .await
+    .map_err(|_| io::Error::new(io::ErrorKind::TimedOut, "response deadline"))??;
     let status = response.status.expect("response parser supplies status");
-    shared.log(attempt, EventKind::UpstreamResponseComplete(status)).await;
+    shared
+        .log(attempt, EventKind::UpstreamResponseComplete(status))
+        .await;
 
     let eligible = request.method.as_deref() == Some("POST")
         && request.path.as_deref() == Some(config.fault_path.as_str())
         && (200..300).contains(&status);
     if eligible
-        && shared.fired.compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire).is_ok()
+        && shared
+            .fired
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .is_ok()
     {
         // The entire upstream response was read, but *no downstream bytes have
         // ever been written*. Dropping this socket produces EOF/transport failure.
@@ -317,7 +376,9 @@ async fn handle_connection(mut client: TcpStream, shared: Shared, attempt: u32) 
     }
     client.write_all(&response.bytes).await?;
     client.flush().await?;
-    shared.log(attempt, EventKind::DownstreamResponse(status)).await;
+    shared
+        .log(attempt, EventKind::DownstreamResponse(status))
+        .await;
     Ok(())
 }
 
@@ -343,11 +404,15 @@ pub async fn retry_post(
     max_response_bytes: usize,
     deadline: Duration,
 ) -> io::Result<WorkloadResult> {
-    if !proxy_address.ip().is_loopback() || !valid_path(path)
-        || idempotency_key.is_empty() || idempotency_key.len() > 128
+    if !proxy_address.ip().is_loopback()
+        || !valid_path(path)
+        || idempotency_key.is_empty()
+        || idempotency_key.len() > 128
         || !idempotency_key.bytes().all(|b| (33..=126).contains(&b))
-        || json.len() > max_request_bytes || max_request_bytes > 65_536
-        || max_response_bytes == 0 || max_response_bytes > 65_536
+        || json.len() > max_request_bytes
+        || max_request_bytes > 65_536
+        || max_response_bytes == 0
+        || max_response_bytes > 65_536
         || deadline.is_zero()
     {
         return Err(invalid("invalid workload configuration"));
@@ -366,17 +431,27 @@ pub async fn retry_post(
             match read_message(&mut socket, max_response_bytes, false).await {
                 Ok(response) => Ok(Attempt::Http {
                     status: response.status.expect("response parser supplies status"),
-                    body: response.bytes[response.bytes.windows(4).position(|w| w == b"\r\n\r\n").expect("parsed HTTP headers") + 4..].to_vec(),
+                    body: response.bytes[response
+                        .bytes
+                        .windows(4)
+                        .position(|w| w == b"\r\n\r\n")
+                        .expect("parsed HTTP headers")
+                        + 4..]
+                        .to_vec(),
                 }),
                 Err(e) if e.kind() == io::ErrorKind::ConnectionAborted => {
                     Ok(Attempt::TransportError)
                 }
                 Err(e) => Err(e),
             }
-        }).await.map_err(|_| io::Error::new(io::ErrorKind::TimedOut, "client deadline"))??;
+        })
+        .await
+        .map_err(|_| io::Error::new(io::ErrorKind::TimedOut, "client deadline"))??;
         let retry = outcome == Attempt::TransportError;
         attempts.push(outcome);
-        if !retry { break; }
+        if !retry {
+            break;
+        }
     }
     Ok(WorkloadResult { attempts })
 }

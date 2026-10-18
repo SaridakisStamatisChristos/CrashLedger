@@ -52,11 +52,17 @@ impl Upstream {
             tasks.abort_all();
             while tasks.join_next().await.is_some() {}
         });
-        Self { address, requests, task }
+        Self {
+            address,
+            requests,
+            task,
+        }
     }
 }
 impl Drop for Upstream {
-    fn drop(&mut self) { self.task.abort(); }
+    fn drop(&mut self) {
+        self.task.abort();
+    }
 }
 fn config(server: &Upstream) -> ProxyConfig {
     ProxyConfig {
@@ -94,9 +100,20 @@ async fn response_suppression_delivers_zero_bytes_and_only_fires_once() {
     assert!(second.starts_with(b"HTTP/1.1 201"));
     assert!(proxy.fault_fired());
     let events = proxy.shutdown().await;
-    assert_eq!(events.iter().filter(|e| e.kind == EventKind::FaultFired).count(), 1);
-    let fire_pos = events.iter().position(|e| e.kind == EventKind::FaultFired).unwrap();
-    assert!(events[..fire_pos].iter().any(|e| e.kind == EventKind::UpstreamResponseComplete(201)));
+    assert_eq!(
+        events
+            .iter()
+            .filter(|e| e.kind == EventKind::FaultFired)
+            .count(),
+        1
+    );
+    let fire_pos = events
+        .iter()
+        .position(|e| e.kind == EventKind::FaultFired)
+        .unwrap();
+    assert!(events[..fire_pos]
+        .iter()
+        .any(|e| e.kind == EventKind::UpstreamResponseComplete(201)));
     assert!(events.iter().enumerate().all(|(i, e)| e.seq == i + 1));
     let requests = upstream.requests.lock().await;
     assert_eq!(requests.len(), 2);
@@ -108,11 +125,22 @@ async fn driver_retries_once_only_after_transport_error() {
     let upstream = Upstream::start(201, b"{}".to_vec()).await;
     let proxy = Proxy::start(config(&upstream)).await.unwrap();
     let result = retry_post(
-        proxy.address, "/orders", "demo-key", PAYLOAD, 65536, 65536, Duration::from_secs(4),
-    ).await.unwrap();
+        proxy.address,
+        "/orders",
+        "demo-key",
+        PAYLOAD,
+        65536,
+        65536,
+        Duration::from_secs(4),
+    )
+    .await
+    .unwrap();
     assert_eq!(result.attempts.len(), 2);
     assert_eq!(result.attempts[0], Attempt::TransportError);
-    assert!(matches!(result.attempts[1], Attempt::Http { status: 201, .. }));
+    assert!(matches!(
+        result.attempts[1],
+        Attempt::Http { status: 201, .. }
+    ));
     proxy.shutdown().await;
     let requests = upstream.requests.lock().await;
     assert_eq!(requests.len(), 2);
@@ -124,10 +152,21 @@ async fn unmatched_path_is_forwarded_without_fault() {
     let upstream = Upstream::start(201, b"{}".to_vec()).await;
     let proxy = Proxy::start(config(&upstream)).await.unwrap();
     let result = retry_post(
-        proxy.address, "/other", "demo-key", PAYLOAD, 65536, 65536, Duration::from_secs(4),
-    ).await.unwrap();
+        proxy.address,
+        "/other",
+        "demo-key",
+        PAYLOAD,
+        65536,
+        65536,
+        Duration::from_secs(4),
+    )
+    .await
+    .unwrap();
     assert_eq!(result.attempts.len(), 1);
-    assert!(matches!(result.attempts[0], Attempt::Http { status: 201, .. }));
+    assert!(matches!(
+        result.attempts[0],
+        Attempt::Http { status: 201, .. }
+    ));
     let events = proxy.shutdown().await;
     assert!(!events.iter().any(|e| e.kind == EventKind::FaultFired));
 }
@@ -137,12 +176,29 @@ async fn failed_upstream_response_is_not_suppressed_or_retried() {
     let upstream = Upstream::start(500, b"{}".to_vec()).await;
     let proxy = Proxy::start(config(&upstream)).await.unwrap();
     let result = retry_post(
-        proxy.address, "/orders", "demo-key", PAYLOAD, 65536, 65536, Duration::from_secs(4),
-    ).await.unwrap();
+        proxy.address,
+        "/orders",
+        "demo-key",
+        PAYLOAD,
+        65536,
+        65536,
+        Duration::from_secs(4),
+    )
+    .await
+    .unwrap();
     assert_eq!(result.attempts.len(), 1);
-    assert!(matches!(result.attempts[0], Attempt::Http { status: 500, .. }));
+    assert!(matches!(
+        result.attempts[0],
+        Attempt::Http { status: 500, .. }
+    ));
     let events = proxy.shutdown().await;
-    assert_eq!(events.iter().filter(|e| e.kind == EventKind::FaultFired).count(), 0);
+    assert_eq!(
+        events
+            .iter()
+            .filter(|e| e.kind == EventKind::FaultFired)
+            .count(),
+        0
+    );
 }
 
 #[tokio::test]
@@ -152,18 +208,29 @@ async fn simultaneous_requests_can_claim_fault_only_once() {
     let mut tasks = Vec::new();
     for _ in 0..12 {
         let address = proxy.address;
-        tasks.push(tokio::spawn(async move { post_bytes(address, "/orders").await.unwrap() }));
+        tasks.push(tokio::spawn(async move {
+            post_bytes(address, "/orders").await.unwrap()
+        }));
     }
     let mut lost = 0;
     let mut delivered = 0;
     for task in tasks {
         let response = task.await.unwrap();
-        if response.is_empty() { lost += 1; }
-        else if response.starts_with(b"HTTP/1.1 201") { delivered += 1; }
+        if response.is_empty() {
+            lost += 1;
+        } else if response.starts_with(b"HTTP/1.1 201") {
+            delivered += 1;
+        }
     }
     assert_eq!((lost, delivered), (1, 11));
     let events = proxy.shutdown().await;
-    assert_eq!(events.iter().filter(|e| e.kind == EventKind::FaultFired).count(), 1);
+    assert_eq!(
+        events
+            .iter()
+            .filter(|e| e.kind == EventKind::FaultFired)
+            .count(),
+        1
+    );
     assert_eq!(upstream.requests.lock().await.len(), 12);
 }
 
