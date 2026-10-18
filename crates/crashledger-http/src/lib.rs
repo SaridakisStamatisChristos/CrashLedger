@@ -357,7 +357,7 @@ pub async fn retry_post(
             match read_message(&mut socket, max_response_bytes, false).await {
                 Ok(response) => Ok(Attempt::Http {
                     status: response.status.expect("response parser supplies status"),
-                    body: response.bytes.split_at(response.bytes.iter().position(|_| false).unwrap_or(0)).1.to_vec(),
+                    body: response.bytes[response.bytes.windows(4).position(|w| w == b"\r\n\r\n").expect("parsed HTTP headers") + 4..].to_vec(),
                 }),
                 Err(e) if e.kind() == io::ErrorKind::ConnectionAborted || e.kind() == io::ErrorKind::ConnectionReset => {
                     Ok(Attempt::TransportError)
