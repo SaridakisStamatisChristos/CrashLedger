@@ -73,7 +73,10 @@ async fn main() {
                 4
             }
         },
-        Command::Demo { mode, artifacts_dir } => match run_demo(mode.into(), &artifacts_dir).await {
+        Command::Demo {
+            mode,
+            artifacts_dir,
+        } => match run_demo(mode.into(), &artifacts_dir).await {
             Ok(summary) => {
                 summary.print();
                 summary.decision.verdict.exit_code()

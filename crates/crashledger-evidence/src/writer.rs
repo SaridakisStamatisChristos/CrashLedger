@@ -1,4 +1,7 @@
-use crate::{invalid, EvidenceError, EvidenceEvent, FinalVerdict, Observation, RunMetadata, FILES, MANIFEST, MAX_FILE, SCHEMA_VERSION};
+use crate::{
+    invalid, EvidenceError, EvidenceEvent, FinalVerdict, Observation, RunMetadata, FILES, MANIFEST,
+    MAX_FILE, SCHEMA_VERSION,
+};
 use crashledger_core::Decision;
 use crashledger_http::{Attempt, Event, EventKind};
 use crashledger_scenario::Scenario;
@@ -33,7 +36,14 @@ fn save_new(path: &Path, data: &[u8]) -> Result<(), EvidenceError> {
     Ok(())
 }
 
-fn push(out: &mut Vec<EvidenceEvent>, run: &str, kind: &str, attempt: Option<u32>, status: Option<u16>, value: Option<i64>) {
+fn push(
+    out: &mut Vec<EvidenceEvent>,
+    run: &str,
+    kind: &str,
+    attempt: Option<u32>,
+    status: Option<u16>,
+    value: Option<i64>,
+) {
     out.push(EvidenceEvent {
         seq: out.len() + 1,
         run_id: run.to_owned(),
@@ -44,7 +54,12 @@ fn push(out: &mut Vec<EvidenceEvent>, run: &str, kind: &str, attempt: Option<u32
     });
 }
 
-pub(crate) fn ordered_events(run: &str, proxy: &[Event], attempts: &[Attempt], observation: Option<i64>) -> Vec<EvidenceEvent> {
+pub(crate) fn ordered_events(
+    run: &str,
+    proxy: &[Event],
+    attempts: &[Attempt],
+    observation: Option<i64>,
+) -> Vec<EvidenceEvent> {
     let mut out = Vec::new();
     for e in proxy {
         if e.kind == EventKind::RequestReceived {
@@ -54,20 +69,41 @@ pub(crate) fn ordered_events(run: &str, proxy: &[Event], attempts: &[Attempt], o
         }
         let (kind, status) = match e.kind {
             EventKind::RequestReceived => ("request_received", None),
-            EventKind::UpstreamResponseComplete(status) => ("upstream_response_complete", Some(status)),
+            EventKind::UpstreamResponseComplete(status) => {
+                ("upstream_response_complete", Some(status))
+            }
             EventKind::FaultFired => ("fault_fired", None),
             EventKind::DownstreamResponse(status) => ("downstream_response", Some(status)),
             EventKind::ProxyError => ("proxy_error", None),
         };
         push(&mut out, run, kind, Some(e.attempt), status, None);
         if e.kind == EventKind::FaultFired
-            && matches!(attempts.get(e.attempt.saturating_sub(1) as usize), Some(Attempt::TransportError))
+            && matches!(
+                attempts.get(e.attempt.saturating_sub(1) as usize),
+                Some(Attempt::TransportError)
+            )
         {
-            push(&mut out, run, "client_transport_error", Some(e.attempt), None, None);
+            push(
+                &mut out,
+                run,
+                "client_transport_error",
+                Some(e.attempt),
+                None,
+                None,
+            );
         }
         if matches!(e.kind, EventKind::DownstreamResponse(_)) {
-            if let Some(Attempt::Http { status, .. }) = attempts.get(e.attempt.saturating_sub(1) as usize) {
-                push(&mut out, run, "client_response", Some(e.attempt), Some(*status), None);
+            if let Some(Attempt::Http { status, .. }) =
+                attempts.get(e.attempt.saturating_sub(1) as usize)
+            {
+                push(
+                    &mut out,
+                    run,
+                    "client_response",
+                    Some(e.attempt),
+                    Some(*status),
+                    None,
+                );
             }
         }
     }
@@ -90,19 +126,25 @@ fn safe_snapshot(scenario: &Scenario) -> Result<String, EvidenceError> {
     for value in &mut scrubbed.oracle.parameters {
         *value = Value::String("[REDACTED]".into());
     }
-    Ok(format!("# REDACTED SNAPSHOT: not executable; original scenario SHA-256 is in run.json\n{}",
-        serde_yaml::to_string(&scrubbed)?))
+    Ok(format!(
+        "# REDACTED SNAPSHOT: not executable; original scenario SHA-256 is in run.json\n{}",
+        serde_yaml::to_string(&scrubbed)?
+    ))
 }
 
 pub fn write_bundle(directory: &Path, capture: &Capture<'_>) -> Result<(), EvidenceError> {
     if !directory.is_dir() {
         return Err(invalid("run directory missing"));
     }
-    let run_id = directory.file_name()
+    let run_id = directory
+        .file_name()
         .and_then(|n| n.to_str())
         .ok_or_else(|| invalid("invalid run directory name"))?;
-    if run_id.len() > 100 || run_id.is_empty()
-        || !run_id.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+    if run_id.len() > 100
+        || run_id.is_empty()
+        || !run_id
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
     {
         return Err(invalid("invalid run identifier"));
     }
@@ -114,8 +156,10 @@ pub fn write_bundle(directory: &Path, capture: &Capture<'_>) -> Result<(), Evide
     }
     let canonical = serde_yaml::to_string(capture.scenario)?;
     let snapshot = safe_snapshot(capture.scenario)?;
-    let now = SystemTime::now().duration_since(UNIX_EPOCH)
-        .map_err(|_| invalid("system clock before UNIX epoch"))?.as_millis();
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| invalid("system clock before UNIX epoch"))?
+        .as_millis();
     let commit = option_env!("GITHUB_SHA").map(str::to_string);
     let metadata = RunMetadata {
         schema_version: SCHEMA_VERSION,
@@ -131,7 +175,11 @@ pub fn write_bundle(directory: &Path, capture: &Capture<'_>) -> Result<(), Evide
         upstream_timeout_ms: capture.scenario.limits.upstream_timeout_ms,
         experiment_timeout_ms: capture.scenario.limits.experiment_timeout_ms,
         attempts: capture.attempts.len(),
-        matching_faults_fired: capture.proxy_events.iter().filter(|e| e.kind == EventKind::FaultFired).count(),
+        matching_faults_fired: capture
+            .proxy_events
+            .iter()
+            .filter(|e| e.kind == EventKind::FaultFired)
+            .count(),
     };
     let obs = Observation {
         schema_version: SCHEMA_VERSION,
@@ -140,14 +188,21 @@ pub fn write_bundle(directory: &Path, capture: &Capture<'_>) -> Result<(), Evide
         expected: capture.scenario.oracle.expected_integer,
         observed: capture.observed,
         // Do not persist raw DB errors: paths and SQL can be sensitive.
-        error: capture.observation_error.map(|_| "oracle_unavailable".to_string()),
+        error: capture
+            .observation_error
+            .map(|_| "oracle_unavailable".to_string()),
     };
     let verdict = FinalVerdict {
         schema_version: SCHEMA_VERSION,
         verdict: capture.decision.verdict,
         reason: capture.decision.reason.to_owned(),
     };
-    let events = ordered_events(run_id, capture.proxy_events, capture.attempts, capture.observed);
+    let events = ordered_events(
+        run_id,
+        capture.proxy_events,
+        capture.attempts,
+        capture.observed,
+    );
     let mut jsonl = Vec::new();
     for event in events {
         serde_json::to_writer(&mut jsonl, &event)?;

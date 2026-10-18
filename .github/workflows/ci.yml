@@ -13,16 +13,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install rustfmt and clippy
         run: rustup component add rustfmt clippy
-      - name: PR-05 temporary lockfile and rustfmt provenance
-        run: |
-          cargo generate-lockfile
-          echo CRASHLEDGER_LOCK_V5_START
-          cat Cargo.lock
-          echo CRASHLEDGER_LOCK_V5_END
-          cargo fmt --all
-          echo CRASHLEDGER_FMT_V5_START
-          git diff -- crates/
-          echo CRASHLEDGER_FMT_V5_END
       - name: Format
         run: cargo fmt --all -- --check
       - name: Lint

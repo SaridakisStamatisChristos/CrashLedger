@@ -1,4 +1,7 @@
-use crate::{invalid, EvidenceError, EvidenceEvent, FinalVerdict, Observation, RunMetadata, FILES, MANIFEST, MAX_FILE, SCHEMA_VERSION};
+use crate::{
+    invalid, EvidenceError, EvidenceEvent, FinalVerdict, Observation, RunMetadata, FILES, MANIFEST,
+    MAX_FILE, SCHEMA_VERSION,
+};
 use crashledger_core::{evaluate, Evaluation, Verdict};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -53,7 +56,9 @@ fn read_file(directory: &Path, name: &str, limit: usize) -> Result<Vec<u8>, Evid
 }
 
 fn valid_digest(s: &str) -> bool {
-    s.len() == 64 && s.bytes().all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+    s.len() == 64
+        && s.bytes()
+            .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
 }
 
 /// Verify all five exact, named artifacts against the last-written manifest.
@@ -70,7 +75,9 @@ fn verified_files(directory: &Path) -> Result<Vec<Vec<u8>>, EvidenceError> {
     }
     let mut verified = Vec::new();
     for (line, expected_name) in records.iter().zip(FILES) {
-        let (declared, file) = line.split_once("  ").ok_or_else(|| invalid("malformed SHA-256 entry"))?;
+        let (declared, file) = line
+            .split_once("  ")
+            .ok_or_else(|| invalid("malformed SHA-256 entry"))?;
         if file != expected_name || !valid_digest(declared) {
             return Err(invalid("manifest file order/name/digest invalid"));
         }
@@ -119,15 +126,22 @@ pub fn read_report(directory: &Path) -> Result<VerifiedReport, EvidenceError> {
         || observed.kind != "sqlite_scalar"
         || !observed.read_only
         || (observed.observed.is_some() == observed.error.is_some())
-        || observed.error.as_deref().is_some_and(|s| s != "oracle_unavailable")
+        || observed
+            .error
+            .as_deref()
+            .is_some_and(|s| s != "oracle_unavailable")
     {
-        return Err(invalid("unsupported, malformed, or inconsistent evidence metadata"));
+        return Err(invalid(
+            "unsupported, malformed, or inconsistent evidence metadata",
+        ));
     }
 
     let mut traces = [Trace::default(), Trace::default()];
     let mut events = Vec::new();
     if data[2].is_empty() || !data[2].ends_with(b"\n") {
-        return Err(invalid("JSONL must contain complete newline-terminated events"));
+        return Err(invalid(
+            "JSONL must contain complete newline-terminated events",
+        ));
     }
     for line in data[2].split(|b| *b == b'\n').filter(|s| !s.is_empty()) {
         if events.len() >= 128 {
@@ -139,7 +153,11 @@ pub fn read_report(directory: &Path) -> Result<VerifiedReport, EvidenceError> {
         }
         events.push(event);
     }
-    if events.is_empty() || events.last().is_none_or(|e| e.kind != "oracle_observation" && e.kind != "oracle_unavailable") {
+    if events.is_empty()
+        || events
+            .last()
+            .is_none_or(|e| e.kind != "oracle_observation" && e.kind != "oracle_unavailable")
+    {
         return Err(invalid("final event must be the independent oracle"));
     }
 
@@ -149,10 +167,16 @@ pub fn read_report(directory: &Path) -> Result<VerifiedReport, EvidenceError> {
         let last = index + 1 == events.len();
         if last {
             match event.kind.as_str() {
-                "oracle_observation" if observed.observed == event.value && event.value.is_some()
-                    && event.attempt.is_none() && event.status.is_none() => {}
-                "oracle_unavailable" if observed.observed.is_none()
-                    && event.value.is_none() && event.attempt.is_none() && event.status.is_none() => {}
+                "oracle_observation"
+                    if observed.observed == event.value
+                        && event.value.is_some()
+                        && event.attempt.is_none()
+                        && event.status.is_none() => {}
+                "oracle_unavailable"
+                    if observed.observed.is_none()
+                        && event.value.is_none()
+                        && event.attempt.is_none()
+                        && event.status.is_none() => {}
                 _ => return Err(invalid("oracle event does not match separate observation")),
             }
             continue;
@@ -160,7 +184,9 @@ pub fn read_report(directory: &Path) -> Result<VerifiedReport, EvidenceError> {
         if event.value.is_some() {
             return Err(invalid("non-oracle event carries observation value"));
         }
-        let attempt = event.attempt.ok_or_else(|| invalid("transport event without attempt"))?;
+        let attempt = event
+            .attempt
+            .ok_or_else(|| invalid("transport event without attempt"))?;
         if attempt == 0 || attempt as usize > run.attempts {
             return Err(invalid("transport event attempt out of range"));
         }
@@ -176,46 +202,83 @@ pub fn read_report(directory: &Path) -> Result<VerifiedReport, EvidenceError> {
             "request_received" if event.status.is_none() && trace.sent && !trace.received => {
                 trace.received = true;
             }
-            "upstream_response_complete" if trace.received && trace.upstream.is_none()
-                && event.status.is_some_and(|s| (200..=599).contains(&s)) => {
+            "upstream_response_complete"
+                if trace.received
+                    && trace.upstream.is_none()
+                    && event.status.is_some_and(|s| (200..=599).contains(&s)) =>
+            {
                 trace.upstream = event.status;
             }
-            "fault_fired" if trace.upstream.is_some_and(|s| (200..300).contains(&s))
-                && !trace.fault && event.status.is_none() && trace.downstream.is_none() => {
+            "fault_fired"
+                if trace.upstream.is_some_and(|s| (200..300).contains(&s))
+                    && !trace.fault
+                    && event.status.is_none()
+                    && trace.downstream.is_none() =>
+            {
                 trace.fault = true;
                 fired += 1;
             }
-            "downstream_response" if trace.upstream.is_some() && !trace.fault
-                && trace.downstream.is_none() && event.status == trace.upstream => {
+            "downstream_response"
+                if trace.upstream.is_some()
+                    && !trace.fault
+                    && trace.downstream.is_none()
+                    && event.status == trace.upstream =>
+            {
                 trace.downstream = event.status;
             }
-            "client_transport_error" if trace.fault && !trace.transport_error && event.status.is_none() => {
+            "client_transport_error"
+                if trace.fault && !trace.transport_error && event.status.is_none() =>
+            {
                 trace.transport_error = true;
             }
-            "client_response" if trace.downstream.is_some() && trace.client_response.is_none()
-                && event.status == trace.downstream => {
+            "client_response"
+                if trace.downstream.is_some()
+                    && trace.client_response.is_none()
+                    && event.status == trace.downstream =>
+            {
                 trace.client_response = event.status;
             }
             "proxy_error" if event.status.is_none() && trace.received => {
                 proxy_errors += 1;
             }
-            _ => return Err(invalid(format!("invalid or causally inconsistent event: {}", event.kind))),
+            _ => {
+                return Err(invalid(format!(
+                    "invalid or causally inconsistent event: {}",
+                    event.kind
+                )))
+            }
         }
     }
-    if fired != run.matching_faults_fired || fired > 1
-        || traces.iter().take(run.attempts).any(|t| !t.sent || !t.received)
-        || traces.iter().skip(run.attempts).any(|t| t.sent || t.received)
+    if fired != run.matching_faults_fired
+        || fired > 1
+        || traces
+            .iter()
+            .take(run.attempts)
+            .any(|t| !t.sent || !t.received)
+        || traces
+            .iter()
+            .skip(run.attempts)
+            .any(|t| t.sent || t.received)
     {
-        return Err(invalid("fault and attempt metadata contradict event history"));
+        return Err(invalid(
+            "fault and attempt metadata contradict event history",
+        ));
     }
     let first_was_transport_error = traces[0].transport_error;
     let retry_occurred = run.attempts == 2 && first_was_transport_error;
     // The core requires both attempts and the retry's HTTP success. Do not
     // permit an HTTP response for the faulted attempt.
-    if traces.iter().any(|t| t.transport_error && t.client_response.is_some()) {
+    if traces
+        .iter()
+        .any(|t| t.transport_error && t.client_response.is_some())
+    {
         return Err(invalid("contradictory transport/client response"));
     }
-    let final_status = if retry_occurred { traces[1].client_response } else { None };
+    let final_status = if retry_occurred {
+        traces[1].client_response
+    } else {
+        None
+    };
     let decision = evaluate(&Evaluation {
         infrastructure_failed: proxy_errors > 0,
         matching_faults_fired: fired as u32,
@@ -228,7 +291,9 @@ pub fn read_report(directory: &Path) -> Result<VerifiedReport, EvidenceError> {
     });
     // Stored claims do not override the replayed evaluation.
     if decision.verdict != verdict.verdict || decision.reason != verdict.reason {
-        return Err(invalid("recorded verdict does not match recomputed verdict"));
+        return Err(invalid(
+            "recorded verdict does not match recomputed verdict",
+        ));
     }
     Ok(VerifiedReport {
         schema_version: SCHEMA_VERSION,
