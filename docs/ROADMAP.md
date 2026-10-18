@@ -23,4 +23,4 @@ These are possible directions, not promises of features or a release schedule. S
 
 ## Historical engineering records
 
-The eight milestone acceptance ledgers (`PR01_REQUIREMENTS.md` through `PR08_REQUIREMENTS.md`) remain in this directory for traceability. They describe the development history; they are **not** current setup instructions, a pending implementation handoff, or evidence that checks passed on a later commit. The current code, documentation and head-specific CI results govern present behavior.
+The eight milestone acceptance ledgers (`PR01_REQUIREMENTS.md` through `PR08_REQUIREMENTS.md`) remain in this directory for traceability. They describe the development history; they are **not** current setup instructions, a to-do list, or evidence that checks passed on a later commit. The current code, documentation and head-specific CI results govern present behavior.
