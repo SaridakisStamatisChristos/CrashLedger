@@ -79,12 +79,12 @@ def main():
         "docs/ROADMAP.md", "docs/SCENARIO_V1.md",
     ]
     obsolete_internal_terms = (
-        r"\\bR7\\b",
-        r"\\bUCS[- ]Pro\\b",
-        r"\\bTrillion Developer\\b",
-        r"\\bAI[- ]agent\\b",
-        r"\\bAI[- ]generated\\b",
-        r"\\bhandoffs?\\b",
+        r"\bR7\b",
+        r"\bUCS[- ]Pro\b",
+        r"\bTrillion Developer\b",
+        r"\bAI[- ]agent\b",
+        r"\bAI[- ]generated\b",
+        r"\bhandoffs?\b",
     )
     for name in public_docs:
         contents = (ROOT / name).read_text(encoding="utf-8")
