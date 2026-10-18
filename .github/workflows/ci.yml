@@ -84,3 +84,31 @@ jobs:
         run: cargo test --locked --workspace --exclude crashledger-engine
       - name: Validate reference scenario
         run: cargo run --locked -p crashledger-cli -- validate scenarios/lost-ack.yaml
+
+  release-candidate:
+    name: Clean-checkout v0.1 internal candidate
+    needs: [rust, portable]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Clean checkout dependency-locked release build and end-to-end preflight
+        run: bash scripts/rc_preflight.sh ./rc-output
+      - name: Confirm Linux candidate tarball and check manifests
+        run: |
+          test -s ./rc-output/crashledger-v0.1.0-rc-linux-x86_64.tar.gz
+          (cd ./rc-output && sha256sum -c SHA256SUMS)
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          base = Path("rc-output")
+          neg = json.loads((base/"broken.report.json").read_text())
+          pos = json.loads((base/"fixed.report.json").read_text())
+          assert neg["verdict"] == "FAIL" and neg["observed"] == 2
+          assert pos["verdict"] == "PASS" and pos["observed"] == 1
+          audit = json.loads((base/"dependency-audit.json").read_text())
+          assert not audit["denied"]
+          assert not audit["compliance_certified"]
+          print("RC preflight manifest, independent verdicts and dependency policy checked.")
+          PY
