@@ -21,7 +21,10 @@ enum Mode {
 }
 
 #[derive(Parser)]
-#[command(name = "crashledger-demo", about = "Standalone broken/fixed order fixture")]
+#[command(
+    name = "crashledger-demo",
+    about = "Standalone broken/fixed order fixture"
+)]
 struct Args {
     #[arg(long, value_enum)]
     mode: Mode,
@@ -60,7 +63,10 @@ async fn ready(State(state): State<AppState>) -> StatusCode {
 async fn order(State(state): State<AppState>, headers: HeaderMap, body: Bytes) -> Reply {
     let keys = headers.get_all("idempotency-key");
     if keys.iter().count() != 1 {
-        return error(StatusCode::BAD_REQUEST, "exactly one Idempotency-Key is required");
+        return error(
+            StatusCode::BAD_REQUEST,
+            "exactly one Idempotency-Key is required",
+        );
     }
     let Some(key) = keys.iter().next().and_then(|v| v.to_str().ok()) else {
         return error(StatusCode::BAD_REQUEST, "invalid Idempotency-Key");
@@ -69,10 +75,16 @@ async fn order(State(state): State<AppState>, headers: HeaderMap, body: Bytes) -
         return error(StatusCode::BAD_REQUEST, "invalid Idempotency-Key");
     }
     let types = headers.get_all("content-type");
-    if types.iter().count() != 1 ||
-        !types.iter().any(|v| v.to_str().is_ok_and(|s| s.eq_ignore_ascii_case("application/json")))
+    if types.iter().count() != 1
+        || !types.iter().any(|v| {
+            v.to_str()
+                .is_ok_and(|s| s.eq_ignore_ascii_case("application/json"))
+        })
     {
-        return error(StatusCode::UNSUPPORTED_MEDIA_TYPE, "application/json required");
+        return error(
+            StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            "application/json required",
+        );
     }
     if body.len() > 65_536 {
         return error(StatusCode::PAYLOAD_TOO_LARGE, "request exceeds 65536 bytes");
@@ -92,11 +104,15 @@ async fn order(State(state): State<AppState>, headers: HeaderMap, body: Bytes) -
             Mode::Broken => broken::insert(&mut conn, &key, &parsed),
             Mode::Fixed => fixed::insert(&mut conn, &key, &parsed, &body),
         }
-    }).await;
+    })
+    .await;
     match result {
         Ok(Ok(Outcome::Created(id))) => (StatusCode::CREATED, Json(json!({"order_id": id}))),
         Ok(Ok(Outcome::Replayed(id))) => (StatusCode::OK, Json(json!({"order_id": id}))),
-        Ok(Ok(Outcome::Conflict)) => error(StatusCode::CONFLICT, "idempotency key reused with changed request"),
+        Ok(Ok(Outcome::Conflict)) => error(
+            StatusCode::CONFLICT,
+            "idempotency key reused with changed request",
+        ),
         Ok(Err(_)) | Err(_) => error(StatusCode::INTERNAL_SERVER_ERROR, "storage unavailable"),
     }
 }
@@ -114,7 +130,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/ready", get(ready))
         .route("/orders", post(order))
         .layer(DefaultBodyLimit::max(65_536))
-        .with_state(AppState { db_path: args.db_path, mode: args.mode });
+        .with_state(AppState {
+            db_path: args.db_path,
+            mode: args.mode,
+        });
     println!("READY http://{address}");
     axum::serve(listener, app).await?;
     Ok(())
