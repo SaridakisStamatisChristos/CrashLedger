@@ -1,5 +1,6 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use crashledger_engine::{run_demo, DemoMode};
+use crashledger_evidence::read_report;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -27,17 +28,29 @@ impl From<Mode> for DemoMode {
     }
 }
 
+#[derive(Clone, Copy, ValueEnum)]
+enum ReportFormat {
+    Text,
+    Json,
+}
+
 #[derive(Subcommand)]
 enum Command {
     /// Validate a closed-schema scenario without contacting its target.
     Validate { scenario: PathBuf },
-    /// Run the same lost-response scenario against a fresh broken or fixed fixture.
+    /// Run the lost-response scenario against a fresh broken or fixed fixture.
     Demo {
         #[arg(long, value_enum)]
         mode: Mode,
         /// Output root for isolated run directories and their fixture databases.
         #[arg(long, default_value = "artifacts")]
         artifacts_dir: PathBuf,
+    },
+    /// Verify SHA-256, validate the event history and reconstruct a stored verdict.
+    Report {
+        bundle: PathBuf,
+        #[arg(long, value_enum, default_value = "text")]
+        format: ReportFormat,
     },
 }
 
@@ -70,6 +83,25 @@ async fn main() {
             }
             Err(error) => {
                 eprintln!("ERROR: {error}");
+                4
+            }
+        },
+        Command::Report { bundle, format } => match read_report(&bundle) {
+            Ok(report) => {
+                match format {
+                    ReportFormat::Text => print!("{}", report.text()),
+                    ReportFormat::Json => match serde_json::to_string_pretty(&report) {
+                        Ok(json) => println!("{json}"),
+                        Err(error) => {
+                            eprintln!("ERROR: cannot format report: {error}");
+                            std::process::exit(4);
+                        }
+                    },
+                };
+                0
+            }
+            Err(error) => {
+                eprintln!("ERROR: report rejected: {error}");
                 4
             }
         },

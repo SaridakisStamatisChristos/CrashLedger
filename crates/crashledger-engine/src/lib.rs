@@ -2,6 +2,7 @@
 //! Transport and target state are never used as interchangeable evidence.
 
 use crashledger_core::{evaluate, Decision, Evaluation, Phase, Verdict};
+use crashledger_evidence::{write_bundle, Capture};
 use crashledger_http::{retry_post, Attempt, Event, EventKind, Proxy, ProxyConfig, WorkloadResult};
 use crashledger_oracle::observe_sqlite_scalar;
 use crashledger_scenario::{parse_str, Scenario, ScenarioError};
@@ -35,6 +36,8 @@ pub enum DemoError {
     Scenario(#[from] ScenarioError),
     #[error("JSON failure: {0}")]
     Json(#[from] serde_json::Error),
+    #[error("evidence persistence failure: {0}")]
+    Evidence(#[from] crashledger_evidence::EvidenceError),
     #[error("experiment setup/transport error: {0}")]
     Internal(String),
 }
@@ -353,6 +356,20 @@ pub async fn run_demo(mode: DemoMode, artifacts: &Path) -> Result<RunSummary, De
         })
         .map_err(|e| DemoError::Internal(e.to_string()))?;
     let _terminal = phase;
+    // Evidence is a required part of the result. Even a correct invariant
+    // cannot exit PASS if the bundle could not be safely persisted.
+    write_bundle(
+        &run_dir,
+        &Capture {
+            scenario: &scenario,
+            mode: mode.as_str(),
+            proxy_events: &events,
+            attempts: &result.attempts,
+            observed,
+            observation_error: observation_error.as_deref(),
+            decision: &decision,
+        },
+    )?;
     Ok(RunSummary {
         mode,
         scenario_id: scenario.id,

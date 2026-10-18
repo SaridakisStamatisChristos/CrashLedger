@@ -2,9 +2,9 @@
 
 CrashLedger is a **local-first correctness experiment runner** for controlled failures and independently checked postconditions, implemented in Rust.
 
-## Current scope — PR-04
+## Current scope — PR-05
 
-PR-01 provides the workspace, strict scenario validator and pure verdict evaluator. PR-02 adds a **standalone, independently tested SQLite-backed HTTP order fixture** with intentionally broken and transactionally fixed idempotency modes. PR-03 adds a bounded loopback HTTP/1.1 one-shot suppression proxy and an identical-byte retry driver. PR-04 adds the experiment engine and a direct read-only SQLite observer. The full lost-response demonstration is now available from the CLI; PR-05 will introduce the complete versioned evidence bundles and report command.
+PR-01 provides the workspace, strict scenario validator and pure verdict evaluator. PR-02 adds a **standalone, independently tested SQLite-backed HTTP order fixture** with intentionally broken and transactionally fixed idempotency modes. PR-03 adds a bounded loopback HTTP/1.1 one-shot suppression proxy and an identical-byte retry driver. PR-04 adds the experiment engine and a direct read-only SQLite observer. The full lost-response demonstration is now available from the CLI; PR-05 persists versioned, manifest-verified evidence and adds an offline report command that reconstructs the verdict.
 
 Requirements and the incremental roadmap are in [docs/ROADMAP.md](docs/ROADMAP.md). The scenario source contract is in [docs/SCENARIO_V1.md](docs/SCENARIO_V1.md).
 
@@ -51,12 +51,28 @@ cargo run --locked -p crashledger-cli -- demo --mode fixed
 # Expected PASS, one order, exit 0
 ~~~
 
-To use a different output root, pass `--artifacts-dir ./path` to `demo`. Each run creates a unique subdirectory containing the fresh isolated fixture SQLite database. PR-05 will add versioned JSONL event files, manifests, full offline verification and report rendering; these are **not yet provided by PR-04**.
+To use a different output root, pass `--artifacts-dir ./path` to `demo`. Each run creates a unique subdirectory containing the fresh isolated fixture SQLite database. PR-05 adds versioned, bounded JSONL events, metadata, redacted snapshot, separate oracle observation and verdict, SHA-256 manifest, and offline verification.
 
 Expected broken and fixed verdicts are scoped to the tested request, failure model and independent observer. They are **not** proof of universal exactly-once processing, arbitrary target commit durability, or general crash safety.
 
 
 A bounded HTTP/1.1 proxy will suppress **one** successful, fully received order response without sending downstream response bytes. The driver retries the identical request. A separate **read-only** SQLite oracle then checks order rows. Against the deliberately broken fixture the experiment must yield FAIL and two rows; against the transactional idempotent fixture it must yield PASS and one row. A missed fault or unavailable observer must never be classified PASS.
+
+## Persistent evidence and standalone reporting — PR-05
+
+Each successful experiment execution, including expected FAIL and available INCONCLUSIVE cases, creates six files under its isolated artifacts/r-... directory: scenario.snapshot.yaml (redacted and explicitly non-replayable), run.json, events.jsonl, observation.json, verdict.json, and manifest.sha256. The writer creates the manifest last and refuses to overwrite files; persistence failure results in exit 4. Event records contain causal and HTTP status metadata, never raw credentials, response bodies, request bodies, or SQL parameter values.
+
+Inspect a prior run **without starting a target or rerunning**:
+
+~~~bash
+cargo run --locked -p crashledger-cli -- report ./artifacts/r-EXAMPLE --format text
+cargo run --locked -p crashledger-cli -- report ./artifacts/r-EXAMPLE --format json
+python3 scripts/verify_bundle.py ./artifacts/r-EXAMPLE
+~~~
+
+Replace r-EXAMPLE with the actual run directory printed by demo. The Rust reporter rejects corrupted/missing/invalid artifacts, checks the SHA-256 manifest, and recomputes the core verdict from the recorded facts. A trustworthy FAIL report exits **0** because reporting succeeded; broken demo itself still exits **2**. A corrupt bundle or report infrastructure failure exits **4**.
+
+**Evidence scope:** SHA-256 detects accidental corruption, not a malicious author who can regenerate a whole bundle. The redacted snapshot is not replayable. The independent Python verifier uses only the standard library.
 
 ## Licensing
 

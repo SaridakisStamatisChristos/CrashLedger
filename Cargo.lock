@@ -209,7 +209,9 @@ dependencies = [
  "clap",
  "crashledger-core",
  "crashledger-engine",
+ "crashledger-evidence",
  "crashledger-scenario",
+ "serde_json",
  "tempfile",
  "tokio",
 ]
@@ -240,6 +242,7 @@ name = "crashledger-engine"
 version = "0.1.0"
 dependencies = [
  "crashledger-core",
+ "crashledger-evidence",
  "crashledger-http",
  "crashledger-oracle",
  "crashledger-scenario",
@@ -247,6 +250,21 @@ dependencies = [
  "tempfile",
  "thiserror",
  "tokio",
+]
+
+[[package]]
+name = "crashledger-evidence"
+version = "0.1.0"
+dependencies = [
+ "crashledger-core",
+ "crashledger-http",
+ "crashledger-scenario",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "sha2",
+ "tempfile",
+ "thiserror",
 ]
 
 [[package]]
