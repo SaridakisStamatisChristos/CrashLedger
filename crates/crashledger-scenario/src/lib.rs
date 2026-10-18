@@ -152,7 +152,9 @@ fn check_path(path: &str) -> Result<(), ScenarioError> {
         || path.split('/').any(|p| p == "." || p == "..")
         || path.len() > 2048
     {
-        return Err(reject("path must be a bounded absolute HTTP path without query or traversal"));
+        return Err(reject(
+            "path must be a bounded absolute HTTP path without query or traversal",
+        ));
     }
     Ok(())
 }
@@ -167,7 +169,9 @@ fn check_url(raw: &str) -> Result<(), ScenarioError> {
         || url.fragment().is_some()
         || url.path() != "/"
     {
-        return Err(reject("target must be a plain HTTP loopback origin with explicit port"));
+        return Err(reject(
+            "target must be a plain HTTP loopback origin with explicit port",
+        ));
     }
     let loopback = match url.host() {
         Some(Host::Ipv4(ip)) => IpAddr::V4(ip).is_loopback(),
@@ -175,7 +179,9 @@ fn check_url(raw: &str) -> Result<(), ScenarioError> {
         _ => false, // Deliberately reject DNS names to avoid name-rebinding surprises.
     };
     if !loopback {
-        return Err(reject("non-loopback or DNS target is forbidden in schema v1"));
+        return Err(reject(
+            "non-loopback or DNS target is forbidden in schema v1",
+        ));
     }
     Ok(())
 }
@@ -192,15 +198,27 @@ fn check_headers(headers: &BTreeMap<String, String>) -> Result<(), ScenarioError
         {
             return Err(reject("malformed HTTP header name or value"));
         }
-        if ["host", "connection", "transfer-encoding", "content-length", "upgrade", "proxy-authorization"]
-            .iter()
-            .any(|h| k.eq_ignore_ascii_case(h))
+        if [
+            "host",
+            "connection",
+            "transfer-encoding",
+            "content-length",
+            "upgrade",
+            "proxy-authorization",
+        ]
+        .iter()
+        .any(|h| k.eq_ignore_ascii_case(h))
         {
-            return Err(reject("hop-by-hop/framing headers are managed by the driver"));
+            return Err(reject(
+                "hop-by-hop/framing headers are managed by the driver",
+            ));
         }
     }
     let find = |name: &str| {
-        headers.iter().find(|(k, _)| k.eq_ignore_ascii_case(name)).map(|(_, v)| v.as_str())
+        headers
+            .iter()
+            .find(|(k, _)| k.eq_ignore_ascii_case(name))
+            .map(|(_, v)| v.as_str())
     };
     let content_type = find("Content-Type").ok_or_else(|| reject("Content-Type is required"))?;
     if !content_type.eq_ignore_ascii_case("application/json") {
@@ -220,9 +238,14 @@ impl Scenario {
         }
         if self.id.is_empty()
             || self.id.len() > 64
-            || !self.id.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+            || !self
+                .id
+                .bytes()
+                .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
         {
-            return Err(reject("id must be 1..64 lowercase ASCII letters, digits or hyphens"));
+            return Err(reject(
+                "id must be 1..64 lowercase ASCII letters, digits or hyphens",
+            ));
         }
         check_url(&self.target.base_url)?;
         check_path(&self.workload.request.path)?;
@@ -240,13 +263,17 @@ impl Scenario {
             || self.limits.max_response_bytes > 65536
             || size > self.limits.max_request_bytes
         {
-            return Err(reject("request/response size bounds must be 1..65536 and fit request JSON"));
+            return Err(reject(
+                "request/response size bounds must be 1..65536 and fit request JSON",
+            ));
         }
         if self.workload.retry.max_attempts != 2
             || self.workload.retry.retry_on != [RetryReason::TransportError]
             || self.workload.retry.backoff_ms > 1000
         {
-            return Err(reject("v1 requires exactly two transport-error attempts and backoff <= 1000ms"));
+            return Err(reject(
+                "v1 requires exactly two transport-error attempts and backoff <= 1000ms",
+            ));
         }
         if self.fault.max_fires != 1
             || self.checks.matching_faults_fired != 1
@@ -259,25 +286,38 @@ impl Scenario {
             || self.limits.upstream_timeout_ms == 0
             || self.limits.upstream_timeout_ms >= self.limits.experiment_timeout_ms
         {
-            return Err(reject("timeout bounds invalid or upstream timeout not less than total"));
+            return Err(reject(
+                "timeout bounds invalid or upstream timeout not less than total",
+            ));
         }
         let db = Path::new(&self.oracle.database_path);
         if self.oracle.database_path.is_empty()
             || db.is_absolute()
-            || db.components().any(|c| matches!(c, Component::ParentDir | Component::RootDir | Component::Prefix(_)))
+            || db.components().any(|c| {
+                matches!(
+                    c,
+                    Component::ParentDir | Component::RootDir | Component::Prefix(_)
+                )
+            })
         {
-            return Err(reject("oracle database path must be relative without traversal"));
+            return Err(reject(
+                "oracle database path must be relative without traversal",
+            ));
         }
         // At runtime PR-04 additionally pins the scenario working directory and
         // opens the database read-only; this parse-time check alone is not a sandbox.
         let query = self.oracle.sql.trim();
         if query.len() > 4096
             || query.contains(';')
-            || !query.get(..6).is_some_and(|s| s.eq_ignore_ascii_case("SELECT"))
+            || !query
+                .get(..6)
+                .is_some_and(|s| s.eq_ignore_ascii_case("SELECT"))
             || !query.as_bytes().get(6).is_some_and(u8::is_ascii_whitespace)
             || self.oracle.parameters.len() > 16
         {
-            return Err(reject("oracle must be a single bounded parameterized SELECT"));
+            return Err(reject(
+                "oracle must be a single bounded parameterized SELECT",
+            ));
         }
         for value in &self.oracle.parameters {
             if !value.is_null() && !value.is_boolean() && !value.is_string() && !value.is_number() {
@@ -307,7 +347,10 @@ mod tests {
     fn bad(from: &str, to: &str) {
         let changed = GOLDEN.replacen(from, to, 1);
         assert_ne!(changed, GOLDEN, "test fixture replacement failed");
-        assert!(parse_str(&changed).is_err(), "invalid scenario was accepted");
+        assert!(
+            parse_str(&changed).is_err(),
+            "invalid scenario was accepted"
+        );
     }
 
     #[test]
@@ -350,18 +393,25 @@ mod tests {
     #[test]
     fn rejects_bad_oracle_and_headers() {
         bad("./run-data/orders.sqlite", "../outside.sqlite");
-        bad("SELECT COUNT(*) FROM orders WHERE idempotency_key = ?1",
-            "DELETE FROM orders");
-        bad("SELECT COUNT(*) FROM orders WHERE idempotency_key = ?1",
-            "SELECT COUNT(*) FROM orders; DELETE FROM orders");
+        bad(
+            "SELECT COUNT(*) FROM orders WHERE idempotency_key = ?1",
+            "DELETE FROM orders",
+        );
+        bad(
+            "SELECT COUNT(*) FROM orders WHERE idempotency_key = ?1",
+            "SELECT COUNT(*) FROM orders; DELETE FROM orders",
+        );
         bad("Idempotency-Key: demo-order-0001", "Idempotency-Key: ''");
         bad("Content-Type: application/json", "Content-Type: text/plain");
     }
 
     #[test]
     fn wrong_fault_path_is_allowed_as_negative_control() {
-        let changed = GOLDEN.replacen("    path: /orders\n  when:",
-                                      "    path: /not-orders\n  when:", 1);
+        let changed = GOLDEN.replacen(
+            "    path: /orders\n  when:",
+            "    path: /not-orders\n  when:",
+            1,
+        );
         assert_ne!(changed, GOLDEN);
         assert!(parse_str(&changed).is_ok());
     }
