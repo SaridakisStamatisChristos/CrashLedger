@@ -1,0 +1,41 @@
+schema_version: 1
+id: lost-ack-order-retry
+target:
+  base_url: http://127.0.0.1:4001
+workload:
+  request:
+    method: POST
+    path: /orders
+    headers:
+      Content-Type: application/json
+      Idempotency-Key: demo-order-0001
+    json:
+      sku: widget-42
+      quantity: 1
+  retry:
+    max_attempts: 2
+    retry_on: [transport_error]
+    backoff_ms: 0
+fault:
+  kind: suppress_response
+  match:
+    method: POST
+    path: /orders
+  when: upstream_response_complete
+  require_upstream_status_class: 2xx
+  max_fires: 1
+oracle:
+  kind: sqlite_scalar
+  database_path: ./run-data/orders.sqlite
+  sql: SELECT COUNT(*) FROM orders WHERE idempotency_key = ?1
+  parameters: [demo-order-0001]
+  expected_integer: 1
+checks:
+  matching_faults_fired: 1
+  sent_attempts: 2
+  final_response_status_class: 2xx
+limits:
+  experiment_timeout_ms: 15000
+  upstream_timeout_ms: 3000
+  max_request_bytes: 65536
+  max_response_bytes: 65536
