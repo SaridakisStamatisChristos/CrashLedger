@@ -1,4 +1,4 @@
-# PR-08 R7 acceptance, internal v0.1 release candidate
+# PR-08 — internal v0.1 release-candidate acceptance
 
 | ID | Hard requirement | Evidence path |
 | --- | --- | --- |
@@ -12,10 +12,10 @@
 | RC08 | Compatibility declaration, draft release notes, limitations and blockers recorded | docs/COMPATIBILITY, RELEASE_CANDIDATE, RELEASE_NOTES |
 | RC09 | No public release, tag or arbitrary license assumption without authorization | inspection of PR diff and GitHub release state |
 
-Completion is **VERIFIED FOR DECLARED INTERNAL LOCAL CANDIDATE** if CI passes. A public release is CONDITIONAL on the owner license decision and full third-party compliance review, and is not executed by this PR.
+The internal local candidate is verified when the release-candidate CI succeeds. The first-party project is now Apache-2.0 licensed; public binary distribution still depends on a manual third-party license and notices review and a separate release decision. This acceptance gate does not publish a GitHub Release.
 
 No encrypted/signed artifacts, remote agents, Docker deployment or arbitrary crash durability tests are applicable to this v0.1 candidate.
 
-## Post-PR08 licensing follow-up
+## Licensing chronology
 
-After the original internal PR08 acceptance, the owner selected Apache-2.0 for first-party code. The current release package and license documentation must be evaluated against that later decision; the historical PR08 limitation records the position **at PR08 completion**, not current licensing status.
+PR-08 initially established an internal candidate before the project license was selected. The owner subsequently chose Apache-2.0, and the open-source productization change added `LICENSE`, `NOTICE`, Cargo license metadata, and a license-inclusive candidate archive. See [dependency policy](DEPENDENCY_POLICY.md) and [release-candidate status](RELEASE_CANDIDATE.md). Third-party notice completeness remains an explicit manual review item.

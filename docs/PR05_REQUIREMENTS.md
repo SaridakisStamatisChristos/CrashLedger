@@ -1,6 +1,6 @@
 # PR-05: evidence and offline reports
 
-Source: CrashLedger architecture handoff section 9 and PR-05.
+Specification: the [evidence v1 schema](EVIDENCE_SCHEMA.md), [correctness contract](CORRECTNESS_CONTRACT.md) and the PR-05 acceptance criteria below.
 
 | ID | Hard requirement | Owner | Acceptance |
 | --- | --- | --- | --- |

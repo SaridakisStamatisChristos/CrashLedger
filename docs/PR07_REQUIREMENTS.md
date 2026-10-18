@@ -1,4 +1,4 @@
-# PR-07 R7 requirements and acceptance
+# PR-07 — cross-platform quality requirements and acceptance
 
 | ID | Hard scope | Evidence |
 | --- | --- | --- |

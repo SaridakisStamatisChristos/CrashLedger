@@ -1,6 +1,6 @@
 # CrashLedger phased implementation
 
-Source of truth: CrashLedger_Architecture_MVP_PR_Roadmap_v1.md supplied as the implementation handoff.
+This repository contains the maintained milestone scope and acceptance criteria. Each phase has its own requirement ledger (see `PR01_REQUIREMENTS.md` through `PR08_REQUIREMENTS.md`). The [architecture](ARCHITECTURE.md), [correctness contract](CORRECTNESS_CONTRACT.md), and [evidence schema](EVIDENCE_SCHEMA.md) describe the current implemented behavior.
 
 | PR | Objective | Acceptance |
 | --- | --- | --- |

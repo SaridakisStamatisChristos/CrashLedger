@@ -1,6 +1,6 @@
 # PR-03 — bounded HTTP/1.1 fault proxy and retry driver
 
-## Hard R7 requirements and acceptance evidence
+## Transport requirements and acceptance evidence
 
 | ID | Invariant | Owner | Falsification |
 | --- | --- | --- | --- |
@@ -19,5 +19,10 @@ Strict HTTP/1.1 with mandatory Content-Length; malformed/multiple length, chunke
 ## Boundaries
 Proxy cannot infer if a database transaction committed merely because an HTTP response was read. PR-02 fixture commits before success; PR-04 must independently observe SQLite. Event sequence is monotonic only within a single in-memory logger; it is not persisted until PR-05. No TLS, remote endpoints, streaming, model checking, real process kill, general application correctness, secrets recording, or production traffic.
 
-## R7 evidence closure
-H01-H08 start UNVERIFIED until final-head CI. No Docker/cloud/release, auth or multi-tenancy are applicable. PR-04 integration must treat timeout, ProxyError and missing fault as ERROR/INCONCLUSIVE, never target FAIL/PASS.
+## Verification and evidence
+
+The transport-specific acceptance gates H01–H08 are exercised by the proxy's TCP regression tests, including one-shot concurrency and a genuine zero-byte lost response. The integration suite tests the broken and fixed SQLite services through the same proxy and driver. See the [GitHub Actions workflow](../.github/workflows/ci.yml) and the [latest verified post-productization run](https://github.com/SaridakisStamatisChristos/CrashLedger/actions/runs/39117257580).
+
+A proxy event alone cannot establish the target's committed state. The experiment evaluator uses a separate SQLite observation and must treat a missed fault, invalid transport sequence or unavailable observation as ERROR/INCONCLUSIVE as appropriate, never as target FAIL/PASS.
+
+Docker, cloud deployment, authentication and multi-tenancy are outside this local proxy's scope.
