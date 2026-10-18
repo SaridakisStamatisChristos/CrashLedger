@@ -415,12 +415,13 @@ mod tests {
 
     #[test]
     fn wrong_fault_path_is_allowed_as_negative_control() {
-        let changed = GOLDEN.replacen(
+        let normalized = GOLDEN.replace("\r\n", "\n");
+        let changed = normalized.replacen(
             "    path: /orders\n  when:",
             "    path: /not-orders\n  when:",
             1,
         );
-        assert_ne!(changed, GOLDEN);
+        assert_ne!(changed, normalized);
         assert!(parse_str(&changed).is_ok());
     }
 }
