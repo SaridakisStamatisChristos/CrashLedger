@@ -78,7 +78,13 @@ impl RunSummary {
                 self.expected
             ),
         }
-        println!("Verdict: {:?} ({})", self.decision.verdict, self.decision.reason);
+        let label = match self.decision.verdict {
+            Verdict::Pass => "PASS",
+            Verdict::Fail => "FAIL",
+            Verdict::Inconclusive => "INCONCLUSIVE",
+            Verdict::Error => "ERROR",
+        };
+        println!("Verdict: {label} ({})", self.decision.reason);
         println!("Artifacts: {}", self.run_directory.display());
         println!("Transport events: {}", self.events.len());
     }
@@ -188,7 +194,7 @@ fn header<'a>(scenario: &'a Scenario, name: &str) -> Result<&'a str, DemoError> 
         .ok_or_else(|| DemoError::Internal(format!("missing scenario header {name}")))
 }
 
-fn validate_history(events: &[Event], attempts: &[Attempt]) -> bool {
+fn validate_history(events: &[Event]) -> bool {
     let fault = events.iter().filter(|e| e.kind == EventKind::FaultFired).collect::<Vec<_>>();
     if fault.len() != 1 {
         return fault.is_empty(); // Missing fault -> INCONCLUSIVE, not an internal contradiction.
@@ -210,7 +216,7 @@ pub fn judge(events: &[Event], result: &WorkloadResult, observed: Option<i64>, e
     let fired = events.iter().filter(|e| e.kind == EventKind::FaultFired).count();
     let proxy_failed = events.iter().any(|e| e.kind == EventKind::ProxyError);
     let event_count = events.iter().filter(|e| e.kind == EventKind::RequestReceived).count();
-    let trace_invalid = !validate_history(events, &result.attempts)
+    let trace_invalid = !validate_history(events)
         || event_count != result.attempts.len()
         || events.iter().enumerate().any(|(i, e)| e.seq != i + 1);
     let proper_retry = result.attempts.len() == 2
