@@ -13,17 +13,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install rustfmt and clippy
         run: rustup component add rustfmt clippy
-      - name: Expose resolved dependency lockfile (temporary PR bootstrap)
-        run: |
-          cargo generate-lockfile
-          echo CRASHLEDGER_LOCK_START
-          cat Cargo.lock
-          echo CRASHLEDGER_LOCK_END
       - name: Format
         run: cargo fmt --all -- --check
       - name: Lint
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        run: cargo clippy --locked --workspace --all-targets -- -D warnings
       - name: Test
-        run: cargo test --workspace
+        run: cargo test --locked --workspace
       - name: CLI smoke test
-        run: cargo run -p crashledger-cli -- validate scenarios/lost-ack.yaml
+        run: cargo run --locked -p crashledger-cli -- validate scenarios/lost-ack.yaml
