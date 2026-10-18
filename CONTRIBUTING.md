@@ -9,6 +9,8 @@ Thank you for improving the experiment. This is a narrow, local-first correctnes
 3. Run `bash scripts/check.sh` and `bash scripts/demo.sh` on Linux/macOS before submitting; CI also runs macOS and Windows portable checks.
 4. Add both a positive case and a falsifier, particularly around fault timing, idempotency, persistence, race conditions, redaction, and verdict gates.
 
+The Python-based licensing and documentation gates below require Python **3.11 or newer** (`tomllib` is part of its standard library).
+
 ```bash
 cargo fmt --all -- --check
 cargo clippy --locked --workspace --all-targets -- -D warnings
