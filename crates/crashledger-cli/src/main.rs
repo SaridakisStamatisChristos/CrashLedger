@@ -96,24 +96,26 @@ async fn main() {
                 4
             }
         },
-        Command::Run { scenario, oracle_db, out } => {
-            match crashledger_scenario::load_file(&scenario) {
-                Ok(scenario) => match run_standalone(scenario, &oracle_db, &out).await {
-                    Ok(summary) => {
-                        summary.print();
-                        summary.decision.verdict.exit_code()
-                    }
-                    Err(error) => {
-                        eprintln!("ERROR: {error}");
-                        4
-                    }
-                },
+        Command::Run {
+            scenario,
+            oracle_db,
+            out,
+        } => match crashledger_scenario::load_file(&scenario) {
+            Ok(scenario) => match run_standalone(scenario, &oracle_db, &out).await {
+                Ok(summary) => {
+                    summary.print();
+                    summary.decision.verdict.exit_code()
+                }
                 Err(error) => {
                     eprintln!("ERROR: {error}");
                     4
                 }
+            },
+            Err(error) => {
+                eprintln!("ERROR: {error}");
+                4
             }
-        }
+        },
         Command::Report { bundle, format } => match read_report(&bundle) {
             Ok(report) => {
                 match format {

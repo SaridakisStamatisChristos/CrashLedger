@@ -406,20 +406,27 @@ pub async fn run_standalone(
         .base_url
         .strip_prefix("http://")
         .ok_or_else(|| DemoError::Internal("invalid HTTP target origin".into()))?;
-    let upstream = origin.parse::<SocketAddr>()
-        .map_err(|_| DemoError::Internal("target must be a numeric loopback socket address".into()))?;
+    let upstream = origin.parse::<SocketAddr>().map_err(|_| {
+        DemoError::Internal("target must be a numeric loopback socket address".into())
+    })?;
     if !upstream.ip().is_loopback() || upstream.port() == 0 {
-        return Err(DemoError::Internal("nonlocal or port-zero target forbidden".into()));
+        return Err(DemoError::Internal(
+            "nonlocal or port-zero target forbidden".into(),
+        ));
     }
     std::fs::create_dir_all(artifacts)?;
-    let run_dir = tempfile::Builder::new().prefix("r-").tempdir_in(artifacts)?.keep();
+    let run_dir = tempfile::Builder::new()
+        .prefix("r-")
+        .tempdir_in(artifacts)?
+        .keep();
     let proxy = Proxy::start(ProxyConfig {
         upstream,
         fault_path: scenario.fault.matcher.path.clone(),
         max_request_bytes: scenario.limits.max_request_bytes,
         max_response_bytes: scenario.limits.max_response_bytes,
         upstream_timeout: Duration::from_millis(scenario.limits.upstream_timeout_ms),
-    }).await?;
+    })
+    .await?;
     let raw_json = serde_json::to_vec(&scenario.workload.request.json)?;
     let task = tokio::time::timeout(
         Duration::from_millis(scenario.limits.experiment_timeout_ms),
@@ -432,34 +439,47 @@ pub async fn run_standalone(
             scenario.limits.max_response_bytes,
             Duration::from_millis(scenario.limits.upstream_timeout_ms),
         ),
-    ).await;
+    )
+    .await;
     // Stop and join the proxy before any state observation.
     let events = proxy.shutdown().await;
     let workload = task
         .map_err(|_| DemoError::Internal("external workload timed out".into()))?
         .map_err(|e| DemoError::Internal(format!("external workload transport failed: {e}")))?;
-    let observation = observe_sqlite_scalar(oracle_db, &scenario.oracle.sql, &scenario.oracle.parameters);
+    let observation =
+        observe_sqlite_scalar(oracle_db, &scenario.oracle.sql, &scenario.oracle.parameters);
     let (observed, observation_error) = match observation {
         Ok(value) => (Some(value), None),
         Err(err) => (None, Some(err.to_string())),
     };
-    let decision = judge(&events, &workload, observed, scenario.oracle.expected_integer);
-    write_bundle(&run_dir, &Capture {
-        scenario: &scenario,
-        mode: "external",
-        proxy_events: &events,
-        attempts: &workload.attempts,
+    let decision = judge(
+        &events,
+        &workload,
         observed,
-        observation_error: observation_error.as_deref(),
-        decision: &decision,
-    })?;
+        scenario.oracle.expected_integer,
+    );
+    write_bundle(
+        &run_dir,
+        &Capture {
+            scenario: &scenario,
+            mode: "external",
+            proxy_events: &events,
+            attempts: &workload.attempts,
+            observed,
+            observation_error: observation_error.as_deref(),
+            decision: &decision,
+        },
+    )?;
     Ok(StandaloneSummary {
         scenario_id: scenario.id,
         run_directory: run_dir,
         decision,
         observation: observed,
         expected: scenario.oracle.expected_integer,
-        faults: events.iter().filter(|e| e.kind == EventKind::FaultFired).count(),
+        faults: events
+            .iter()
+            .filter(|e| e.kind == EventKind::FaultFired)
+            .count(),
         attempts: workload.attempts.len(),
     })
 }
@@ -481,7 +501,8 @@ impl StandaloneSummary {
         println!("Attempts: {}", self.attempts);
         println!(
             "Independent SQLite observation: {} (expected {})",
-            self.observation.map_or_else(|| "unavailable".into(), |x| x.to_string()),
+            self.observation
+                .map_or_else(|| "unavailable".into(), |x| x.to_string()),
             self.expected,
         );
         let label = match self.decision.verdict {
@@ -494,7 +515,6 @@ impl StandaloneSummary {
         println!("Artifacts: {}", self.run_directory.display());
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -593,4 +613,3 @@ mod tests {
         assert_eq!(judge(&events, &result, Some(1), 1).verdict, Verdict::Error);
     }
 }
-
